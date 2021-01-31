@@ -82,14 +82,15 @@ public class Stage2RunServiceImpl extends AbstractLinkedProcessorFlow {
             // 放下插齿，收回插齿
             JSONArray destinations = new JSONArray();
             JSONObject forkUnload = SeerParamUtil.buildDestinations(
-                    "AP1000_01", "ForkUnload", "end_height", "0");
+                    task.getTakeLocation() + "_01", "ForkUnload", "end_height", "0");
             destinations.add(forkUnload);
 
             JSONObject forkForward = SeerParamUtil.buildDestinations(
-                    "AP1000_01", "ForkForward", "end_height", "0");
+                    task.getTakeLocation() + "_01", "ForkForward", "end_height", "0");
             destinations.add(forkForward);
 
             // 补充参数
+            params.put("deadline", task.getDeadlineTime());
             params.put("destinations", destinations.toString());
             params.put("dependencies", "[]");
             params.put("properties", "[]");

@@ -68,9 +68,6 @@ public class Stage5RunServiceImpl extends AbstractLinkedProcessorFlow {
                 return true;
             }
         } else {
-
-            String targetLocation = task.getDeliveryLocation();
-
             // 提交参数
             JSONObject params = new JSONObject();
 
@@ -78,14 +75,15 @@ public class Stage5RunServiceImpl extends AbstractLinkedProcessorFlow {
             // 放下插齿，收回插齿
             JSONArray destinations = new JSONArray();
             JSONObject forkUnload = SeerParamUtil.buildDestinations(
-                    targetLocation, "ForkUnload", "end_height", "0");
+                    task.getDeliveryLocation(), "ForkUnload", "end_height", "0");
             destinations.add(forkUnload);
 
             JSONObject forkForward = SeerParamUtil.buildDestinations(
-                    targetLocation, "ForkForward", "end_height", "0");
+                    task.getDeliveryLocation(), "ForkForward", "end_height", "0");
             destinations.add(forkForward);
 
             // 补充参数
+            params.put("deadline", task.getDeadlineTime());
             params.put("destinations", destinations.toString());
             params.put("dependencies", "[]");
             params.put("properties", "[]");

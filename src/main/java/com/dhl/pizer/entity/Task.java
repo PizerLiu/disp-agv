@@ -34,11 +34,16 @@ public class Task implements Serializable {
     @ApiModelProperty("task分配车辆")
     private String intendedVehicle;
 
+    @ApiModelProperty("确定取货库位")
+    private String takeLocation;
+
     @ApiModelProperty("确定放货库位")
     private String deliveryLocation;
 
     @ApiModelProperty("task工程； 工程对照阶段类型不同")
     private String project;
+
+    private String deadlineTime;
 
     private Date createTime;
 

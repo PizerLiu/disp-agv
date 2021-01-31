@@ -1,12 +1,9 @@
 package com.dhl.pizer.controller;
 
-import com.dhl.pizer.conf.TaskStageEnum;
 import com.dhl.pizer.dao.LocationRepository;
 import com.dhl.pizer.dao.TaskRepository;
-import com.dhl.pizer.entity.Location;
 import com.dhl.pizer.entity.Task;
 import com.dhl.pizer.service.TaskService;
-import com.dhl.pizer.util.UuidUtils;
 import com.dhl.pizer.vo.ResponceBody;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -18,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.alibaba.fastjson.JSONObject;
 
-import java.util.Date;
 import java.util.Optional;
 
 @Slf4j
@@ -36,20 +32,10 @@ public class BaseDataController {
     @Autowired
     private TaskService taskService;
 
+
+
     @GetMapping("/test")
     public ResponceBody test() {
-
-        Location location = Location.builder().location("BP1000").lock(false)
-                .createTime(new Date()).updateTime(new Date()).build();
-        locationRepository.insert(location);
-
-        location = Location.builder().location("BP1001").lock(false)
-                .createTime(new Date()).updateTime(new Date()).build();
-        locationRepository.insert(location);
-
-        location = Location.builder().location("BP1002").lock(false)
-                .createTime(new Date()).updateTime(new Date()).build();
-        locationRepository.insert(location);
 
         return new ResponceBody().success(true);
     }

@@ -14,6 +14,7 @@ import com.dhl.pizer.entity.WayBillTask;
 import com.dhl.pizer.flowcontrol.flowchain.AbstractLinkedProcessorFlow;
 import com.dhl.pizer.flowcontrol.flowchain.ControlArgs;
 import com.dhl.pizer.service.TaskStageRunService;
+import com.dhl.pizer.socket.NoticeWebSocket;
 import com.dhl.pizer.util.DateUtil;
 import com.dhl.pizer.util.HttpClientUtils;
 import com.dhl.pizer.util.SeerParamUtil;
@@ -52,6 +53,7 @@ public class Stage1RunServiceImpl extends AbstractLinkedProcessorFlow<Object> {
         Task task = taskRepository.findByTaskId(taskId);
         // 更新task的stage
         task.setStage(TaskStageEnum.PP_TO_TAKELEADINGPOINT.toString());
+        task.setTakeLocation(controlArgs.getStartLocation());
         taskRepository.save(task);
 
         WayBillTask wayBillTask = WayBillTask.builder().taskId(taskId)
@@ -79,18 +81,20 @@ public class Stage1RunServiceImpl extends AbstractLinkedProcessorFlow<Object> {
             // 放下插齿，收回插齿
             JSONArray destinations = new JSONArray();
             JSONObject forkUnload = SeerParamUtil.buildDestinations(
-                    "AP1000_00", "ForkUnload", "end_height", "0");
+                    controlArgs.getStartLocation() + "_00", "ForkUnload", "end_height", "0");
             destinations.add(forkUnload);
 
             JSONObject forkForward = SeerParamUtil.buildDestinations(
-                    "AP1000_00", "ForkForward", "end_height", "0");
+                    controlArgs.getStartLocation() + "_00", "ForkForward", "fork_dist", "0");
             destinations.add(forkForward);
 
             // 补充参数
             params.put("destinations", destinations.toString());
             params.put("dependencies", "[]");
             params.put("properties", "[]");
+            // 先不指定车辆
             params.put("intendedVehicle", "");
+            params.put("deadline", task.getDeadlineTime());
 
             HttpClientUtils.doPost(AppApiEnum.sendTaskUrl.getDesc(), params);
 
@@ -201,11 +205,35 @@ public class Stage1RunServiceImpl extends AbstractLinkedProcessorFlow<Object> {
         JSONObject a = getYdParam("C1-01-01", "Fork-01", "C1-01-03",
                 "f9dd337ef8ba4a5ea343d1c88305401e", 1, "2019-06-22T16:57:34.711Z");
         System.out.println(JSONObject.toJSONString(a));
+
+
 //		Map<String, String> map=JsonUtil.jsonToMap(getYdParam("C1-01-01","Fork-01","C1-01-03","f9dd337ef8ba4a5ea343d1c88305401e",2,"2019-06-22T16:57:34.711Z").toString());
 //		Set<Entry<String, String>> set=map.entrySet();
 //		for(Entry<String, String> entry:set){
 //			System.out.println(entry.getKey()+"====>"+entry.getValue());
 //		}
+
+        // 提交参数
+        JSONObject params = new JSONObject();
+
+        // destinations
+        // 放下插齿，收回插齿
+        JSONArray destinations = new JSONArray();
+        JSONObject forkUnload = SeerParamUtil.buildDestinations(
+                "AP1000_00", "ForkUnload", "end_height", "0");
+        destinations.add(forkUnload);
+
+        JSONObject forkForward = SeerParamUtil.buildDestinations(
+                "AP1000_00", "ForkForward", "end_height", "0");
+        destinations.add(forkForward);
+
+        // 补充参数
+        params.put("destinations", destinations.toString());
+        params.put("dependencies", "[]");
+        params.put("properties", "[]");
+        params.put("intendedVehicle", "");
+
+//        System.out.println(JSONObject.toJSON(params));
 
     }
 

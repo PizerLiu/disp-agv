@@ -105,6 +105,7 @@ public class Stage4RunServiceImpl extends AbstractLinkedProcessorFlow {
             destinations.add(forkForward);
 
             // 补充参数
+            params.put("deadline", task.getDeadlineTime());
             params.put("destinations", destinations.toString());
             params.put("dependencies", "[]");
             params.put("properties", "[]");

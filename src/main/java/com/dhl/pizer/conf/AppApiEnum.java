@@ -33,8 +33,8 @@ public enum AppApiEnum {
 
     // operation: ForkForward
 
-    sendTaskUrl("http://192.168.1.252:55200/v1/transportOrders/"),//发送任务的url
-    queryTaskUrl("http://192.168.1.252:55200/v1/transportOrders/"),//检查任务的url
+    sendTaskUrl("http://192.168.1.7:7100/api/route/transportOrders/"),//发送任务的url
+    queryTaskUrl("http://192.168.1.7:7100/api/route/transportOrders/"),//检查任务的url
     startOperation("Wait"),
     startPropertiesKey("device:queryAtExecuted"),
     startPropertiesValue("1"),

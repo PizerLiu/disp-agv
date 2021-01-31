@@ -15,12 +15,13 @@ import javax.websocket.server.ServerEndpoint;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+//judge/photoelectricity
 /**
- * @ServerEndpoint(value = "/judge/photoelectricity") 光电客户端接收信息请求
+ * @ServerEndpoint(value = "/") 光电客户端接收信息请求
  */
 @Slf4j
 @Component
-@ServerEndpoint(value = "/judge/photoelectricity")
+@ServerEndpoint(value = "/")
 public class NoticeWebSocket {
 
     @Autowired
@@ -35,6 +36,11 @@ public class NoticeWebSocket {
      * 记录ip -> 灯
      */
     private static HashMap<String, String> ipLed = new HashMap();
+
+    /**
+     * 记录灯 -> session
+     */
+    private static HashMap<String, String> ledSession = new HashMap();
 
     /**
      * 连接建立成功调用的方法
@@ -62,19 +68,21 @@ public class NoticeWebSocket {
     @OnMessage
     public void onMessage(String message, Session session) {
 
-        // 更新灯
-        ipLed.put("", "");
+        System.out.println("SO_LINGER = " + message);
 
-        taskService = SpringContextUtil.getApplicationContext().getBean(TaskService.class);
-
-        log.info("服务端收到客户端[{}]的消息:{}", session.getId(), message);
-
-        if (message.equals("123")) {
-            // 无指定开始位置
-            taskService.createTask("阿斯利康-传感器触发", "");
-        }
-
-        this.sendMessage("Hello, " + message, session);
+//        // 更新灯
+//        ipLed.put("", "");
+//
+//        taskService = SpringContextUtil.getApplicationContext().getBean(TaskService.class);
+//
+//        log.info("服务端收到客户端[{}]的消息:{}", session.getId(), message);
+//
+//        if (message.equals("123")) {
+//            // 无指定开始位置
+//            taskService.createTask("阿斯利康-传感器触发", "");
+//        }
+//
+//        this.sendMessage("Hello, " + message, session);
     }
 
     @OnError
