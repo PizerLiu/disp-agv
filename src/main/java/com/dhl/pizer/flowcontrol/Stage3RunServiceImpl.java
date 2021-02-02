@@ -13,7 +13,7 @@ import com.dhl.pizer.entity.Task;
 import com.dhl.pizer.entity.WayBillTask;
 import com.dhl.pizer.flowcontrol.flowchain.AbstractLinkedProcessorFlow;
 import com.dhl.pizer.flowcontrol.flowchain.ControlArgs;
-import com.dhl.pizer.service.TaskStageRunService;
+import com.dhl.pizer.service.RegService;
 import com.dhl.pizer.util.HttpClientUtils;
 import com.dhl.pizer.util.SeerParamUtil;
 import com.dhl.pizer.util.UuidUtils;
@@ -36,6 +36,9 @@ public class Stage3RunServiceImpl extends AbstractLinkedProcessorFlow {
 
     @Autowired
     private WayBillTaskRepository wayBillTaskRepository;
+
+    @Autowired
+    private RegService regService;
 
     @Override
     public boolean entry(ControlArgs controlArgs) throws BugException {
@@ -62,6 +65,10 @@ public class Stage3RunServiceImpl extends AbstractLinkedProcessorFlow {
                 wayBillTask.setStatus(Status.FINISHED.getCode());
                 wayBillTask.setUpdateTime(new Date());
                 wayBillTaskRepository.save(wayBillTask);
+
+                // 到达取货位置，开红灯
+                regService.setRegLed("NO.1", false);
+
                 return true;
             }
         } else {
@@ -76,10 +83,6 @@ public class Stage3RunServiceImpl extends AbstractLinkedProcessorFlow {
             JSONObject forkUnload = SeerParamUtil.buildDestinations(
                     task.getTakeLocation(), "ForkUnload", "end_height", "0");
             destinations.add(forkUnload);
-
-            JSONObject forkForward = SeerParamUtil.buildDestinations(
-                    task.getTakeLocation(), "ForkForward", "end_height", "0");
-            destinations.add(forkForward);
 
             // 补充参数
             params.put("deadline", task.getDeadlineTime());

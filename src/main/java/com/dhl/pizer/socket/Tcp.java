@@ -7,14 +7,14 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 
-@Component
+//@Component
 public class Tcp {
 
     private static int SrdStatePort = 19204;
 
     private Socket client;
 
-//    @PostConstruct
+    @PostConstruct
     public void init() {
         try {
             client = new Socket("127.0.0.1", SrdStatePort);
@@ -36,6 +36,7 @@ public class Tcp {
 
             InputStream input = client.getInputStream();
             byte[] b = new byte[1024];
+
             int len = input.read(b);
             data = new String(b, 0, len);
             System.out.println("收到服务器消息：" + data);

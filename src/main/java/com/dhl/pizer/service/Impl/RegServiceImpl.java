@@ -17,9 +17,13 @@ public class RegServiceImpl implements RegService {
 
         ChannelHandlerContext ctx = nettyServerHandler.getCtx(regId);
         if (on) {
-            ctx.write("OPEN 1");
-        } else {
+            // 开绿灯
+            ctx.write("OPEN 3");
             ctx.write("CLOSE 1");
+        } else {
+            // 开红灯
+            ctx.write("CLOSE 3");
+            ctx.write("OPEN 1");
         }
 
         ctx.flush();

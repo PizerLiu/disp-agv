@@ -13,6 +13,7 @@ import com.dhl.pizer.entity.Task;
 import com.dhl.pizer.entity.WayBillTask;
 import com.dhl.pizer.flowcontrol.flowchain.AbstractLinkedProcessorFlow;
 import com.dhl.pizer.flowcontrol.flowchain.ControlArgs;
+import com.dhl.pizer.socket.NettyServerHandler;
 import com.dhl.pizer.socket.NoticeWebSocket;
 import com.dhl.pizer.util.HttpClientUtils;
 import com.dhl.pizer.util.SeerParamUtil;
@@ -32,7 +33,7 @@ import java.util.Optional;
 public class Stage2RunServiceImpl extends AbstractLinkedProcessorFlow {
 
     @Autowired
-    private NoticeWebSocket noticeWebSocket;
+    private NettyServerHandler nettyServerHandler;
 
     @Autowired
     private TaskRepository taskRepository;
@@ -69,8 +70,7 @@ public class Stage2RunServiceImpl extends AbstractLinkedProcessorFlow {
             }
         } else {
             // 判断绿灯
-            String ledStatus = noticeWebSocket.checkLedStatus(IpLedConfig.LED1.getIp());
-            if (!ledStatus.equals("green")) {
+            if (!nettyServerHandler.checkGreenLedStatus("NO.1")) {
                 log.warn("led当前不为绿灯，等待时机！");
                 return false;
             }
@@ -82,16 +82,12 @@ public class Stage2RunServiceImpl extends AbstractLinkedProcessorFlow {
             // 放下插齿，收回插齿
             JSONArray destinations = new JSONArray();
             JSONObject forkUnload = SeerParamUtil.buildDestinations(
-                    task.getTakeLocation() + "_01", "ForkUnload", "end_height", "0");
+                    controlArgs.getStartLocation().equals("AP1002") ? "AP1001" : "AP1001",
+                     "ForkUnload", "end_height", "0");
             destinations.add(forkUnload);
-
-            JSONObject forkForward = SeerParamUtil.buildDestinations(
-                    task.getTakeLocation() + "_01", "ForkForward", "end_height", "0");
-            destinations.add(forkForward);
 
             // 补充参数
             params.put("deadline", task.getDeadlineTime());
-            params.put("destinations", destinations.toString());
             params.put("dependencies", "[]");
             params.put("properties", "[]");
             params.put("intendedVehicle", "");

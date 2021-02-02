@@ -21,7 +21,7 @@ import java.net.InetSocketAddress;
 
 @Component
 @Slf4j
-public class NettySeerver {
+public class NettyServer {
 
     /**
      * boss 线程组用于处理连接工作
@@ -32,7 +32,7 @@ public class NettySeerver {
      */
     private EventLoopGroup work = new NioEventLoopGroup();
 
-    private Integer port = 8181;
+    private Integer port = 8080;
 
     /**
      * 启动Netty Server

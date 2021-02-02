@@ -14,6 +14,7 @@ import com.dhl.pizer.entity.Task;
 import com.dhl.pizer.entity.WayBillTask;
 import com.dhl.pizer.flowcontrol.flowchain.AbstractLinkedProcessorFlow;
 import com.dhl.pizer.flowcontrol.flowchain.ControlArgs;
+import com.dhl.pizer.service.RegService;
 import com.dhl.pizer.util.HttpClientUtils;
 import com.dhl.pizer.util.SeerParamUtil;
 import com.dhl.pizer.util.UuidUtils;
@@ -40,6 +41,9 @@ public class Stage4RunServiceImpl extends AbstractLinkedProcessorFlow {
 
     @Autowired
     private LocationRepository locationRepository;
+
+    @Autowired
+    private RegService regService;
 
     @Override
     public boolean entry(ControlArgs controlArgs) throws BugException {
@@ -70,13 +74,17 @@ public class Stage4RunServiceImpl extends AbstractLinkedProcessorFlow {
             }
         } else {
             // todo 选择空闲放货库位，同时设置占用库位，库位占用何时释放掉
-            Location location = Location.builder().lock(false).build();
+            Location location = Location.builder().type("deliveryLocation").lock(false).build();
             Example<Location> locationExample = Example.of(location);
             List<Location> locations = locationRepository.findAll(locationExample);
             if (locations.size() == 0) {
                 log.warn("放货库位全部被占用，请等待！");
                 return false;
             }
+
+            // 到达取货位置，开绿灯
+            regService.setRegLed("NO.1", true);
+
             location = locations.get(0);
             String targetLocation = location.getLocation();
 
@@ -95,14 +103,21 @@ public class Stage4RunServiceImpl extends AbstractLinkedProcessorFlow {
 
             // destinations
             // 放下插齿，收回插齿
+            String assistLocation = "";
+            if (targetLocation.equals("AP1006")) {
+                assistLocation = "AP1003";
+            }
+            if (targetLocation.equals("AP1007")) {
+                assistLocation = "AP1004";
+            }
+            if (targetLocation.equals("AP1008")) {
+                assistLocation = "AP1005";
+            }
+
             JSONArray destinations = new JSONArray();
             JSONObject forkUnload = SeerParamUtil.buildDestinations(
-                    targetLocation + "_00", "ForkUnload", "end_height", "0");
+                    assistLocation, "ForkUnload", "end_height", "0");
             destinations.add(forkUnload);
-
-            JSONObject forkForward = SeerParamUtil.buildDestinations(
-                    targetLocation + "_00", "ForkForward", "end_height", "0");
-            destinations.add(forkForward);
 
             // 补充参数
             params.put("deadline", task.getDeadlineTime());

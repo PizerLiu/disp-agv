@@ -16,10 +16,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  */
 
 /**
- * 取货辅助点：AP1000_00、AP1000_01（相机检测点）
- * 取货点：AP1000
- * 放货辅助点：BP1000_00\BP1001_00\BP1002_00
- * 放货点：BP1000\BP1001\BP1002
+ * 取货辅助点：AP1000、AP1001（相机检测点）
+ * 取货点：AP1002
+ * 放货辅助点：AP1003\AP1004\AP1005
+ * 放货点：AP1006\AP1007\AP1008
  */
 
 /**
