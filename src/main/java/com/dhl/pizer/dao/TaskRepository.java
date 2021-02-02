@@ -1,5 +1,6 @@
 package com.dhl.pizer.dao;
 
+import java.util.List;
 import com.dhl.pizer.entity.Task;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,4 +17,5 @@ public interface TaskRepository extends MongoRepository<Task, String> {
     @Query("{'deviceId':'?0'}")
     Page<Task> findAllByDeviceId(String deviceId, Pageable pageable);
 
+    List<Task> findAllByTaskId(String taskId);
 }

@@ -1,5 +1,6 @@
 package com.dhl.pizer.controller;
 
+import java.util.List;
 import com.dhl.pizer.dao.LocationRepository;
 import com.dhl.pizer.dao.TaskRepository;
 import com.dhl.pizer.entity.Location;
@@ -77,6 +78,13 @@ public class WebDataController {
         Location location = Location.builder().id(id).build();
         locationRepository.delete(location);
         return new ResponceBody().success(true);
+    }
+
+    @ApiOperation("查找库位信息")
+    @GetMapping("/location/find")
+    public ResponceBody findLocation(@RequestParam("location") String location) {
+        List<Location> locations = locationRepository.findAllByLocation(location);
+        return new ResponceBody().success(locations);
     }
 
     @ApiOperation("分页查看运单信息")

@@ -75,7 +75,7 @@ public class NettyServerHandler extends ChannelInboundHandlerAdapter {
 
         // 取货口，有货物到了
         if (message.getRegId().equals("NO.1") && message.getIoState().endsWith("11")) {
-            taskService.createTask("阿斯利康-传感器触发", "AP1000");
+            taskService.createTask("阿斯利康-传感器触发", "AP1002");
         }
 
         regIdCtx.put(message.getRegId(), ctx);

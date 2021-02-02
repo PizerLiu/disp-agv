@@ -24,9 +24,6 @@ public class Location implements Serializable {
     @ApiModelProperty("库位")
     private String location;
 
-    @ApiModelProperty("放货库位(deliveryLocation)、取货库位(takeLocation)")
-    private String type;
-
     // 部分库位和ip绑定，ip没有绑定的才会参与需求2的手机发送任务
     @ApiModelProperty("绑定ip")
     private String ip;
@@ -36,6 +33,9 @@ public class Location implements Serializable {
 
     @ApiModelProperty("占用taskId")
     private String taskId = "";
+
+    @ApiModelProperty("放货库位(deliveryLocation)、取货库位(takeLocation)")
+    private String type;
 
     private Date createTime;
 
