@@ -53,20 +53,23 @@ public class Stage1RunServiceImpl extends AbstractLinkedProcessorFlow<Object> {
         Task task = taskRepository.findByTaskId(taskId);
         // 更新task的stage
         task.setStage(TaskStageEnum.PP_TO_TAKELEADINGPOINT.toString());
-        task.setTakeLocation(controlArgs.getStartLocation());
+        task.setTakeLocation(task.getTakeLocation());
         taskRepository.save(task);
 
-        WayBillTask wayBillTask = WayBillTask.builder().taskId(taskId)
+        WayBillTask wayBillTask = WayBillTask.builder().taskId(taskId).status(Status.RUNNING.getCode())
                 .stage(TaskStageEnum.PP_TO_TAKELEADINGPOINT.toString()).build();
+
         Example<WayBillTask> example = Example.of(wayBillTask);
         Optional<WayBillTask> wayBillTaskOp = wayBillTaskRepository.findOne(example);
+
         if (wayBillTaskOp.isPresent()) {
             // 已经添加数据， 检查执行状态是否结束
             // 开始查询运单状态
             wayBillTask = wayBillTaskOp.get();
-            JSONObject queryRes = HttpClientUtils.getForJsonResult(
-                    AppApiEnum.queryTaskUrl.getDesc() + wayBillTask.getWayBillTaskId());
-            if (queryRes.get("state").equals("FINISHED")) {
+//            JSONObject queryRes = HttpClientUtils.getForJsonResult(
+//                    AppApiEnum.queryTaskUrl.getDesc() + wayBillTask.getWayBillTaskId());
+//            if (queryRes.get("state").equals("FINISHED")) {
+            if (true) {
                 // 接口查下当前任务状态，若完成则更新FINISHED
                 wayBillTask.setStatus(Status.FINISHED.getCode());
                 wayBillTask.setUpdateTime(new Date());
@@ -81,7 +84,7 @@ public class Stage1RunServiceImpl extends AbstractLinkedProcessorFlow<Object> {
             // 放下插齿，收回插齿
             JSONArray destinations = new JSONArray();
             JSONObject forkUnload = SeerParamUtil.buildDestinations(
-                    controlArgs.getStartLocation().equals("AP1002") ? "AP1000" : "AP1000",
+                    task.getTakeLocation().equals("AP1002") ? "AP1000" : "AP1000",
                     "ForkUnload", "end_height", "0");
             destinations.add(forkUnload);
 
@@ -93,7 +96,7 @@ public class Stage1RunServiceImpl extends AbstractLinkedProcessorFlow<Object> {
             params.put("intendedVehicle", "");
             params.put("deadline", task.getDeadlineTime());
 
-            HttpClientUtils.doPost(AppApiEnum.sendTaskUrl.getDesc(), params);
+//            HttpClientUtils.doPost(AppApiEnum.sendTaskUrl.getDesc(), params);
 
             // 添加数据
             String wayBillTaskId = Prefix.WayBillPrefix + UuidUtils.getUUID();
@@ -101,6 +104,8 @@ public class Stage1RunServiceImpl extends AbstractLinkedProcessorFlow<Object> {
                     .stage(TaskStageEnum.PP_TO_TAKELEADINGPOINT.toString()).status(Status.RUNNING.getCode())
                     .param(params.toJSONString()).createTime(new Date()).updateTime(new Date()).build();
             wayBillTaskRepository.insert(wayBillTask);
+
+            return false;
         }
 
         return true;

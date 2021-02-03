@@ -9,4 +9,6 @@ import org.springframework.stereotype.Repository;
 public interface WayBillTaskRepository extends MongoRepository<WayBillTask, String> {
 
     List<WayBillTask> findAllByTaskId(String wayBillTask);
+
+    WayBillTask findAllByTaskIdAndStage(String taskId, String stage);
 }

@@ -36,4 +36,18 @@ public class WayBillTask implements Serializable {
 
     private Date updateTime;
 
+    public WayBillTask() {
+
+    }
+
+    public WayBillTask(String id, String taskId, String stage, String wayBillTaskId, int status, String param, Date createTime, Date updateTime) {
+        this.id = id;
+        this.taskId = taskId;
+        this.stage = stage;
+        this.wayBillTaskId = wayBillTaskId;
+        this.status = status;
+        this.param = param;
+        this.createTime = createTime;
+        this.updateTime = updateTime;
+    }
 }

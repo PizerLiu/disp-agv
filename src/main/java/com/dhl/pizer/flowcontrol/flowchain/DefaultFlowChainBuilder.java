@@ -45,7 +45,7 @@ public class DefaultFlowChainBuilder implements FlowChainBuilder {
 
         for (String stage : stages) {
             // 丢弃已执行完成的阶段
-            if (stages.indexOf(stage) <= stages.indexOf(currentStage)) {
+            if (stages.indexOf(stage) < stages.indexOf(currentStage)) {
                 continue;
             }
 

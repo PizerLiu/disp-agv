@@ -47,20 +47,21 @@ public class Stage5RunServiceImpl extends AbstractLinkedProcessorFlow {
 
         Task task = taskRepository.findByTaskId(taskId);
         // 更新task的stage
-        task.setStage(TaskStageEnum.PICKUPPOINT_TO_PLUGBOARDTEST.toString());
+        task.setStage(TaskStageEnum.DISCHARGELEADINGPOINT_TO_DISCHARGEPOINT.toString());
         taskRepository.save(task);
 
-        WayBillTask wayBillTask = WayBillTask.builder().taskId(taskId)
-                .stage(TaskStageEnum.PICKUPPOINT_TO_PLUGBOARDTEST.toString()).build();
+        WayBillTask wayBillTask = WayBillTask.builder().taskId(taskId).status(Status.RUNNING.getCode())
+                .stage(TaskStageEnum.DISCHARGELEADINGPOINT_TO_DISCHARGEPOINT.toString()).build();
         Example<WayBillTask> example = Example.of(wayBillTask);
         Optional<WayBillTask> wayBillTaskOp = wayBillTaskRepository.findOne(example);
         if (wayBillTaskOp.isPresent()) {
             // 已经添加数据， 检查执行状态是否结束
             // 开始查询运单状态
             wayBillTask = wayBillTaskOp.get();
-            JSONObject queryRes = HttpClientUtils.getForJsonResult(
-                    AppApiEnum.queryTaskUrl.getDesc() + wayBillTask.getWayBillTaskId());
-            if (queryRes.get("state").equals("FINISHED")) {
+//            JSONObject queryRes = HttpClientUtils.getForJsonResult(
+//                    AppApiEnum.queryTaskUrl.getDesc() + wayBillTask.getWayBillTaskId());
+//            if (queryRes.get("state").equals("FINISHED")) {
+            if (true) {
                 // 接口查下当前任务状态，若完成则更新FINISHED
                 wayBillTask.setStatus(Status.FINISHED.getCode());
                 wayBillTask.setUpdateTime(new Date());
@@ -85,14 +86,16 @@ public class Stage5RunServiceImpl extends AbstractLinkedProcessorFlow {
             params.put("properties", "[]");
             params.put("intendedVehicle", "");
 
-            HttpClientUtils.doPost(AppApiEnum.sendTaskUrl.getDesc(), params);
+//            HttpClientUtils.doPost(AppApiEnum.sendTaskUrl.getDesc(), params);
 
             // 添加数据
             String wayBillTaskId = Prefix.WayBillPrefix + UuidUtils.getUUID();
             wayBillTask = WayBillTask.builder().taskId(taskId).wayBillTaskId(wayBillTaskId)
-                    .stage(TaskStageEnum.PICKUPPOINT_TO_PLUGBOARDTEST.toString()).status(Status.RUNNING.getCode())
+                    .stage(TaskStageEnum.DISCHARGELEADINGPOINT_TO_DISCHARGEPOINT.toString()).status(Status.RUNNING.getCode())
                     .param(params.toJSONString()).createTime(new Date()).updateTime(new Date()).build();
             wayBillTaskRepository.insert(wayBillTask);
+
+            return false;
         }
 
         return true;

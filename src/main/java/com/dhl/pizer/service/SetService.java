@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class SetService {
+
     @Autowired
     private SetRepository setRepository;
 
@@ -21,4 +22,5 @@ public class SetService {
     public List<Set> findAllById(String id) {
         return setRepository.findAllById(id);
     }
+
 }

@@ -75,20 +75,20 @@ public class BaseDataController {
 
     // }
 
-    // @ApiOperation("手持端添加task")
-    // @GetMapping("/add")
-    // public ResponceBody insertTask(@RequestParam("start_location") String startLocation) {
+     @ApiOperation("手持端添加task")
+     @GetMapping("/add")
+     public ResponceBody insertTask(@RequestParam("start_location") String startLocation) {
 
-    //     return taskService.createTask("阿斯利康-手持端", startLocation);
-    // }
+         return taskService.createTask("阿斯利康-手持端", "AP1002");
+     }
 
-    @ApiOperation("添加运单任务")
-    @PostMapping("/add")
-    public ResponceBody insertTask(@RequestBody Task task) {
-
-        Task res = taskRepository.insert(task);
-        return new ResponceBody().success(res);
-    }
+//    @ApiOperation("添加运单任务")
+//    @PostMapping("/add")
+//    public ResponceBody insertTask(@RequestBody Task task) {
+//
+//        Task res = taskRepository.insert(task);
+//        return new ResponceBody().success(res);
+//    }
 
     @ApiOperation("修改运单任务")
     @PostMapping("/edit")
