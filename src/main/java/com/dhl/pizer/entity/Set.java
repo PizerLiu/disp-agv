@@ -21,8 +21,8 @@ public class Set implements Serializable{
     private String id;
 
     @ApiModelProperty("是否开启相机检测")
-    private boolean isCamera;
+    private boolean setcamera;
 
     @ApiModelProperty("是否连接")
-    private boolean isPower;
+    private boolean setpower;
 }

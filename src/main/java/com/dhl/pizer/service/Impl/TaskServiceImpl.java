@@ -40,8 +40,8 @@ public class TaskServiceImpl implements TaskService {
     public ResponceBody createTask(String projectName, String startLocation) {
 
         String taskId = Prefix.TaskPrefix + UuidUtils.getUUID();
-        Optional<Set> set = setRepository.findById("601764207ab6bd57abbe0af0");
-        if (set.isPresent() || !set.get().isPower()) {
+        Set set = setRepository.findAllById("601764207ab6bd57abbe0af0");
+        if (set == null || !set.isSetpower()) {
             return new ResponceBody().error(ErrorCode.Setting_power_false, taskId);
         }
 

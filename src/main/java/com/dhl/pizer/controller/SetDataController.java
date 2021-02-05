@@ -34,7 +34,7 @@ public class SetDataController {
     @ApiOperation("更改设置")
     @GetMapping("/find")
     public ResponceBody listSet(@RequestParam("id") String id) {
-        List<Set> sets = setService.findAllById(id);
+        Set sets = setService.findAllById(id);
         return new ResponceBody().success(sets);
     }
 }

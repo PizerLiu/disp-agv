@@ -1,9 +1,12 @@
 package com.dhl.pizer.controller;
 
+import com.dhl.pizer.conf.ErrorCode;
 import com.dhl.pizer.conf.TaskStageEnum;
 import com.dhl.pizer.dao.LocationRepository;
+import com.dhl.pizer.dao.SetRepository;
 import com.dhl.pizer.dao.TaskRepository;
 import com.dhl.pizer.entity.Location;
+import com.dhl.pizer.entity.Set;
 import com.dhl.pizer.entity.Task;
 import com.dhl.pizer.service.TaskService;
 import com.dhl.pizer.util.UuidUtils;
@@ -35,7 +38,7 @@ public class BaseDataController {
     private TaskRepository taskRepository;
 
     @Autowired
-    private LocationRepository locationRepository;
+    private SetRepository setRepository;
 
     @Autowired
     private TaskService taskService;
@@ -43,17 +46,10 @@ public class BaseDataController {
     @GetMapping("/test")
     public ResponceBody test() {
 
-        Location location = Location.builder().location("BP1000").lock(false)
-                .createTime(new Date()).updateTime(new Date()).build();
-        locationRepository.insert(location);
-
-        location = Location.builder().location("BP1001").lock(false)
-                .createTime(new Date()).updateTime(new Date()).build();
-        locationRepository.insert(location);
-
-        location = Location.builder().location("BP1002").lock(false)
-                .createTime(new Date()).updateTime(new Date()).build();
-        locationRepository.insert(location);
+        Set set = setRepository.findAllById("601764207ab6bd57abbe0af0");
+        if (set == null || !set.isSetpower()) {
+            return new ResponceBody().error(ErrorCode.Setting_power_false, "test");
+        }
 
         return new ResponceBody().success(true);
     }
@@ -79,7 +75,7 @@ public class BaseDataController {
      @GetMapping("/add")
      public ResponceBody insertTask(@RequestParam("start_location") String startLocation) {
 
-         return taskService.createTask("阿斯利康-手持端", "AP1002");
+         return taskService.createTask("阿斯利康-手持端", "LOC-AP1002");
      }
 
 //    @ApiOperation("添加运单任务")

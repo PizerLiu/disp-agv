@@ -51,7 +51,12 @@ public class NettyServerHandler extends ChannelInboundHandlerAdapter {
 
     @PostConstruct
     private void init() {
+        // 取货口
         regIdGreenLed.put("NO.1", true);
+
+        // 放货口
+        regIdGreenLed.put("NO.2", true);
+        regIdGreenLed.put("NO.3", true);
     }
 
     /**
@@ -88,7 +93,7 @@ public class NettyServerHandler extends ChannelInboundHandlerAdapter {
         // 取货口，有货物到了
         if (message.getRegId().equals("NO.1") && message.getIoState().endsWith("11")) {
             taskService = SpringContextUtil.getApplicationContext().getBean(TaskService.class);
-            taskService.createTask("阿斯利康-传感器触发", "AP1002");
+            taskService.createTask("阿斯利康-传感器触发", "LOC-AP1002");
         }
 
         log.info("服务器收到消息: {}", message.toString());

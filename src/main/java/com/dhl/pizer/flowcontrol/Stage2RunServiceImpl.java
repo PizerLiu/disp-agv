@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Optional;
 
@@ -59,10 +60,10 @@ public class Stage2RunServiceImpl extends AbstractLinkedProcessorFlow {
             // 已经添加数据， 检查执行状态是否结束
             // 开始查询运单状态
             wayBillTask = wayBillTaskOp.get();
-//            JSONObject queryRes = HttpClientUtils.getForJsonResult(
-//                    AppApiEnum.queryTaskUrl.getDesc() + wayBillTask.getWayBillTaskId());
-//            if (queryRes.get("state").equals("FINISHED")) {
-            if (true) {
+            JSONObject queryRes = HttpClientUtils.getForJsonResult(
+                    AppApiEnum.queryTaskUrl.getDesc() + wayBillTask.getWayBillTaskId());
+            if (queryRes.get("state").equals("FINISHED")) {
+//            if (true) {
                 // 接口查下当前任务状态，若完成则更新FINISHED
                 wayBillTask.setStatus(Status.FINISHED.getCode());
                 wayBillTask.setUpdateTime(new Date());
@@ -83,16 +84,14 @@ public class Stage2RunServiceImpl extends AbstractLinkedProcessorFlow {
             // 放下插齿，收回插齿
             JSONArray destinations = new JSONArray();
             JSONObject forkUnload = SeerParamUtil.buildDestinations(
-                    "AP1001", "ForkUnload", "end_height", "0");
+                    "LOC-AP1001", "ForkUnload", "end_height", "0");
             destinations.add(forkUnload);
 
             // 补充参数
-            params.put("deadline", task.getDeadlineTime());
-            params.put("dependencies", "[]");
-            params.put("properties", "[]");
+            params.put("destinations", destinations);
+            params.put("dependencies", new ArrayList<>());
+            params.put("properties", new ArrayList<>());
             params.put("intendedVehicle", "");
-
-//            HttpClientUtils.doPost(AppApiEnum.sendTaskUrl.getDesc(), params);
 
             // 添加数据
             String wayBillTaskId = Prefix.WayBillPrefix + UuidUtils.getUUID();
@@ -100,6 +99,8 @@ public class Stage2RunServiceImpl extends AbstractLinkedProcessorFlow {
                     .stage(TaskStageEnum.PICKUPPOINT_TO_PLUGBOARDTEST.toString()).status(Status.RUNNING.getCode())
                     .param(params.toJSONString()).createTime(new Date()).updateTime(new Date()).build();
             wayBillTaskRepository.insert(wayBillTask);
+
+            HttpClientUtils.doPost(AppApiEnum.sendTaskUrl.getDesc() + wayBillTaskId, params);
 
             return false;
         }

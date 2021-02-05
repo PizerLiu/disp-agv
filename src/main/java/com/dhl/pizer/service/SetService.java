@@ -19,7 +19,7 @@ public class SetService {
         return setRepository.save(set);
     }
 
-    public List<Set> findAllById(String id) {
+    public Set findAllById(String id) {
         return setRepository.findAllById(id);
     }
 

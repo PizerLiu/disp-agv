@@ -27,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Optional;
@@ -66,15 +67,20 @@ public class Stage1RunServiceImpl extends AbstractLinkedProcessorFlow<Object> {
             // 已经添加数据， 检查执行状态是否结束
             // 开始查询运单状态
             wayBillTask = wayBillTaskOp.get();
-//            JSONObject queryRes = HttpClientUtils.getForJsonResult(
-//                    AppApiEnum.queryTaskUrl.getDesc() + wayBillTask.getWayBillTaskId());
-//            if (queryRes.get("state").equals("FINISHED")) {
-            if (true) {
+            JSONObject queryRes = HttpClientUtils.getForJsonResult(
+                    AppApiEnum.queryTaskUrl.getDesc() + wayBillTask.getWayBillTaskId());
+
+            if (queryRes.get("state").equals("FINISHED")) {
+//            if (true) {
                 // 接口查下当前任务状态，若完成则更新FINISHED
                 wayBillTask.setStatus(Status.FINISHED.getCode());
                 wayBillTask.setUpdateTime(new Date());
                 wayBillTaskRepository.save(wayBillTask);
                 return true;
+            } else {
+                // 更新task的车辆信息
+                task.setIntendedVehicle(queryRes.get("intendedVehicle").toString());
+                taskRepository.save(task);
             }
         } else {
             // 提交参数
@@ -84,19 +90,17 @@ public class Stage1RunServiceImpl extends AbstractLinkedProcessorFlow<Object> {
             // 放下插齿，收回插齿
             JSONArray destinations = new JSONArray();
             JSONObject forkUnload = SeerParamUtil.buildDestinations(
-                    task.getTakeLocation().equals("AP1002") ? "AP1000" : "AP1000",
+                    task.getTakeLocation().equals("LOC-AP1002") ? "LOC-AP1000" : "LOC-AP1000",
                     "ForkUnload", "end_height", "0");
             destinations.add(forkUnload);
 
             // 补充参数
-            params.put("destinations", destinations.toString());
-            params.put("dependencies", "[]");
-            params.put("properties", "[]");
+            params.put("destinations", destinations);
+            params.put("dependencies", new ArrayList<>());
+            params.put("properties", new ArrayList<>());
             // 先不指定车辆
             params.put("intendedVehicle", "");
             params.put("deadline", task.getDeadlineTime());
-
-//            HttpClientUtils.doPost(AppApiEnum.sendTaskUrl.getDesc(), params);
 
             // 添加数据
             String wayBillTaskId = Prefix.WayBillPrefix + UuidUtils.getUUID();
@@ -104,6 +108,8 @@ public class Stage1RunServiceImpl extends AbstractLinkedProcessorFlow<Object> {
                     .stage(TaskStageEnum.PP_TO_TAKELEADINGPOINT.toString()).status(Status.RUNNING.getCode())
                     .param(params.toJSONString()).createTime(new Date()).updateTime(new Date()).build();
             wayBillTaskRepository.insert(wayBillTask);
+
+            HttpClientUtils.doPost(AppApiEnum.sendTaskUrl.getDesc() + wayBillTaskId, params);
 
             return false;
         }

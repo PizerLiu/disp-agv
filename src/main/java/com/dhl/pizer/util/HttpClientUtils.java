@@ -1,5 +1,6 @@
 package com.dhl.pizer.util;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
@@ -12,6 +13,7 @@ import org.apache.http.util.EntityUtils;
 import org.springframework.http.HttpStatus;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Map;
 
 public class HttpClientUtils {
@@ -24,7 +26,8 @@ public class HttpClientUtils {
     public static JSONObject getForJsonResult(String reqUrl) {
 
         HttpClient httpclient = HttpClientBuilder.create().build();
-        HttpGet get = new HttpGet();
+        HttpGet get = new HttpGet(reqUrl);
+        System.out.println("请求url: " + reqUrl);
 
         JSONObject response = null;
         try {
@@ -33,6 +36,7 @@ public class HttpClientUtils {
                 String result = EntityUtils.toString(res.getEntity());// 返回json格式：
                 if (StringUtils.isNoneBlank(result)) {
                     System.out.println("发送任务返回结果:" + result);
+                    return JSON.parseObject(result);
                 } else {
                     System.out.println("调用接口的返回值为空！！！！");
                 }
@@ -55,13 +59,16 @@ public class HttpClientUtils {
         HttpPost post = new HttpPost(url);
         JSONObject response = null;
         try {
-            StringEntity s = new StringEntity(json.toString());
-            s.setContentEncoding("UTF-8");
-            s.setContentType("application/json");//发送json数据需要设置contentType
-            post.setEntity(s);
+            StringEntity entity = new StringEntity(json.toString(), Charset.forName("UTF-8"));
+            entity.setContentEncoding("UTF-8");
+            entity.setContentType("application/json");
+            post.setEntity(entity);
         } catch (Exception e) {
             throw new RuntimeException("参数转换异常:" + e);
         }
+
+        System.out.println(JSON.toJSON(json));
+
         try {
             HttpResponse res = httpclient.execute(post);
             if (res.getStatusLine().getStatusCode() == HttpStatus.OK.value()) {
