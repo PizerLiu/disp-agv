@@ -63,8 +63,13 @@ public class Stage5RunServiceImpl extends AbstractLinkedProcessorFlow {
                     AppApiEnum.queryTaskUrl.getDesc() + wayBillTask.getWayBillTaskId());
 
             // todo 判断放货口的信号
+
             if (queryRes.get("state").equals("FINISHED")) {
-//            if (true) {
+
+                // 更新task的车辆信息
+                task.setIntendedVehicle(queryRes.get("intendedVehicle").toString());
+                taskRepository.save(task);
+
                 // 接口查下当前任务状态，若完成则更新FINISHED
                 wayBillTask.setStatus(Status.FINISHED.getCode());
                 wayBillTask.setUpdateTime(new Date());
@@ -101,7 +106,7 @@ public class Stage5RunServiceImpl extends AbstractLinkedProcessorFlow {
             return false;
         }
 
-        return true;
+        return false;
     }
 
     @Override

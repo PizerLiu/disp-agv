@@ -71,17 +71,18 @@ public class Stage1RunServiceImpl extends AbstractLinkedProcessorFlow<Object> {
                     AppApiEnum.queryTaskUrl.getDesc() + wayBillTask.getWayBillTaskId());
 
             if (queryRes.get("state").equals("FINISHED")) {
-//            if (true) {
+
+                // 更新task的车辆信息
+                task.setIntendedVehicle(queryRes.get("intendedVehicle").toString());
+                taskRepository.save(task);
+
                 // 接口查下当前任务状态，若完成则更新FINISHED
                 wayBillTask.setStatus(Status.FINISHED.getCode());
                 wayBillTask.setUpdateTime(new Date());
                 wayBillTaskRepository.save(wayBillTask);
                 return true;
-            } else {
-                // 更新task的车辆信息
-                task.setIntendedVehicle(queryRes.get("intendedVehicle").toString());
-                taskRepository.save(task);
             }
+
         } else {
             // 提交参数
             JSONObject params = new JSONObject();
@@ -114,7 +115,7 @@ public class Stage1RunServiceImpl extends AbstractLinkedProcessorFlow<Object> {
             return false;
         }
 
-        return true;
+        return false;
     }
 
     @Override

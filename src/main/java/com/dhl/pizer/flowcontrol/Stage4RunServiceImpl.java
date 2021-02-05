@@ -66,8 +66,13 @@ public class Stage4RunServiceImpl extends AbstractLinkedProcessorFlow {
             wayBillTask = wayBillTaskOp.get();
             JSONObject queryRes = HttpClientUtils.getForJsonResult(
                     AppApiEnum.queryTaskUrl.getDesc() + wayBillTask.getWayBillTaskId());
+
             if (queryRes.get("state").equals("FINISHED")) {
-//            if (true) {
+
+                // 更新task的车辆信息
+                task.setIntendedVehicle(queryRes.get("intendedVehicle").toString());
+                taskRepository.save(task);
+
                 // 接口查下当前任务状态，若完成则更新FINISHED
                 wayBillTask.setStatus(Status.FINISHED.getCode());
                 wayBillTask.setUpdateTime(new Date());
@@ -140,7 +145,7 @@ public class Stage4RunServiceImpl extends AbstractLinkedProcessorFlow {
             return false;
         }
 
-        return true;
+        return false;
     }
 
     @Override
