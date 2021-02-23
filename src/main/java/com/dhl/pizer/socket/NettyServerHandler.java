@@ -52,10 +52,11 @@ public class NettyServerHandler extends ChannelInboundHandlerAdapter {
     @PostConstruct
     private void init() {
         // 取货口
-        regIdGreenLed.put("NO.1", true);
+        regIdGreenLed.put("LOC-AP1000", false);
+        regIdGreenLed.put("LOC-AP1001", false);
 
         // 放货口
-        regIdGreenLed.put("NO.2", true);
+        regIdGreenLed.put("NO.2", false);
         regIdGreenLed.put("NO.3", true);
     }
 
@@ -86,12 +87,15 @@ public class NettyServerHandler extends ChannelInboundHandlerAdapter {
                 message.getIoState() == null || message.getIoState().isEmpty()) {
             return;
         }
-
+        log.info("任务触发参数校验通过！");
+        // 存储client的ctx
         regIdCtx.put(message.getRegId(), ctx);
+        // 存储每个设备的绿灯状态
         regIdGreenLed.put(message.getRegId(), message.getIoState().substring(1, 2).equals("1"));
 
         // 取货口，有货物到了
-        if (message.getRegId().equals("NO.1") && message.getIoState().endsWith("11")) {
+        if (message.getRegId().equals("LOC-AP1000") && message.getIoState().endsWith("11")) {
+            log.info("成功触发任务！");
             taskService = SpringContextUtil.getApplicationContext().getBean(TaskService.class);
             taskService.createTask("阿斯利康-传感器触发", "LOC-AP1002");
         }

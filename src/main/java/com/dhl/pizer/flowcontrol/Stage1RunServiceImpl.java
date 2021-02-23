@@ -57,24 +57,30 @@ public class Stage1RunServiceImpl extends AbstractLinkedProcessorFlow<Object> {
         task.setTakeLocation(task.getTakeLocation());
         taskRepository.save(task);
 
-        WayBillTask wayBillTask = WayBillTask.builder().taskId(taskId).status(Status.RUNNING.getCode())
-                .stage(TaskStageEnum.PP_TO_TAKELEADINGPOINT.toString()).build();
+        WayBillTask wayBillTask = wayBillTaskRepository.findByTaskIdAndStatusAndStage(
+                taskId,
+                Status.RUNNING.getCode(),
+                TaskStageEnum.PP_TO_TAKELEADINGPOINT.toString());
 
-        Example<WayBillTask> example = Example.of(wayBillTask);
-        Optional<WayBillTask> wayBillTaskOp = wayBillTaskRepository.findOne(example);
-
-        if (wayBillTaskOp.isPresent()) {
+        if (wayBillTask != null) {
             // 已经添加数据， 检查执行状态是否结束
             // 开始查询运单状态
-            wayBillTask = wayBillTaskOp.get();
-            JSONObject queryRes = HttpClientUtils.getForJsonResult(
+            JSONObject queryTaskRes = HttpClientUtils.getForJsonResult(
                     AppApiEnum.queryTaskUrl.getDesc() + wayBillTask.getWayBillTaskId());
 
-            if (queryRes.get("state").equals("FINISHED")) {
+            // 更新task的车辆信息
+            if (queryTaskRes.get("processingVehicle") == null || queryTaskRes.get("processingVehicle").equals("")) {
+                return false;
+            }
 
-                // 更新task的车辆信息
-                task.setIntendedVehicle(queryRes.get("intendedVehicle").toString());
-                taskRepository.save(task);
+            String vehicleName = queryTaskRes.get("processingVehicle").toString();
+            task.setIntendedVehicle(vehicleName);
+            taskRepository.save(task);
+
+            JSONObject queryVehicleRes = HttpClientUtils.getForJsonResult(
+                    AppApiEnum.queryVehicleUrl.getDesc() + vehicleName);
+
+            if (queryVehicleRes.get("currentDestination").equals("LOC-AP1000")) {
 
                 // 接口查下当前任务状态，若完成则更新FINISHED
                 wayBillTask.setStatus(Status.FINISHED.getCode());
@@ -87,12 +93,21 @@ public class Stage1RunServiceImpl extends AbstractLinkedProcessorFlow<Object> {
             // 提交参数
             JSONObject params = new JSONObject();
 
+            // 添加数据
+            String wayBillTaskId = Prefix.WayBillPrefix + UuidUtils.getUUID();
+
             // destinations
             // 放下插齿，收回插齿
             JSONArray destinations = new JSONArray();
+            JSONObject wait = SeerParamUtil.buildDestinations(
+                    task.getTakeLocation().equals("LOC-AP1002") ? "LOC-AP1000" : "LOC-AP1000", "Wait", "device:requestAtSend",  wayBillTaskId+ ":wait");
+            destinations.add(wait);
+            JSONObject wait1 = SeerParamUtil.buildDestinations(
+                    task.getTakeLocation().equals("LOC-AP1002") ? "LOC-AP1000" : "LOC-AP1000", "Wait", "device:queryAtExecuted", wayBillTaskId+ ":wait");
+            destinations.add(wait1);
             JSONObject forkUnload = SeerParamUtil.buildDestinations(
                     task.getTakeLocation().equals("LOC-AP1002") ? "LOC-AP1000" : "LOC-AP1000",
-                    "ForkUnload", "end_height", "0");
+                    "ForkUnload", "end_height", "0.5");
             destinations.add(forkUnload);
 
             // 补充参数
@@ -103,9 +118,7 @@ public class Stage1RunServiceImpl extends AbstractLinkedProcessorFlow<Object> {
             params.put("intendedVehicle", "");
             params.put("deadline", task.getDeadlineTime());
 
-            // 添加数据
-            String wayBillTaskId = Prefix.WayBillPrefix + UuidUtils.getUUID();
-            wayBillTask = WayBillTask.builder().taskId(taskId).wayBillTaskId(wayBillTaskId)
+            wayBillTask = WayBillTask.builder().taskId(taskId).wayBillTaskId(wayBillTaskId).lock(true)
                     .stage(TaskStageEnum.PP_TO_TAKELEADINGPOINT.toString()).status(Status.RUNNING.getCode())
                     .param(params.toJSONString()).createTime(new Date()).updateTime(new Date()).build();
             wayBillTaskRepository.insert(wayBillTask);
@@ -223,24 +236,24 @@ public class Stage1RunServiceImpl extends AbstractLinkedProcessorFlow<Object> {
 //		}
 
         // 提交参数
-        JSONObject params = new JSONObject();
-
-        // destinations
-        // 放下插齿，收回插齿
-        JSONArray destinations = new JSONArray();
-        JSONObject forkUnload = SeerParamUtil.buildDestinations(
-                "AP1000_00", "ForkUnload", "end_height", "0");
-        destinations.add(forkUnload);
-
-        JSONObject forkForward = SeerParamUtil.buildDestinations(
-                "AP1000_00", "ForkForward", "end_height", "0");
-        destinations.add(forkForward);
-
-        // 补充参数
-        params.put("destinations", destinations.toString());
-        params.put("dependencies", "[]");
-        params.put("properties", "[]");
-        params.put("intendedVehicle", "");
+//        JSONObject params = new JSONObject();
+//
+//        // destinations
+//        // 放下插齿，收回插齿
+//        JSONArray destinations = new JSONArray();
+//        JSONObject forkUnload = SeerParamUtil.buildDestinations(
+//                "AP1000_00", "ForkUnload", "end_height", "0");
+//        destinations.add(forkUnload);
+//
+//        JSONObject forkForward = SeerParamUtil.buildDestinations(
+//                "AP1000_00", "ForkForward", "end_height", "0");
+//        destinations.add(forkForward);
+//
+//        // 补充参数
+//        params.put("destinations", destinations.toString());
+//        params.put("dependencies", "[]");
+//        params.put("properties", "[]");
+//        params.put("intendedVehicle", "");
 
 //        System.out.println(JSONObject.toJSON(params));
 

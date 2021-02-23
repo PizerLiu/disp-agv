@@ -1,20 +1,25 @@
 package com.dhl.pizer.controller;
 
 import com.dhl.pizer.conf.ErrorCode;
+import com.dhl.pizer.conf.Status;
 import com.dhl.pizer.conf.TaskStageEnum;
 import com.dhl.pizer.dao.LocationRepository;
 import com.dhl.pizer.dao.SetRepository;
 import com.dhl.pizer.dao.TaskRepository;
+import com.dhl.pizer.dao.WayBillTaskRepository;
 import com.dhl.pizer.entity.Location;
 import com.dhl.pizer.entity.Set;
 import com.dhl.pizer.entity.Task;
+import com.dhl.pizer.entity.WayBillTask;
 import com.dhl.pizer.service.TaskService;
+import com.dhl.pizer.socket.NettyServerHandler;
 import com.dhl.pizer.util.UuidUtils;
 import com.dhl.pizer.vo.ResponceBody;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Example;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -43,13 +48,26 @@ public class BaseDataController {
     @Autowired
     private TaskService taskService;
 
+    @Autowired
+    private WayBillTaskRepository wayBillTaskRepository;
+
+    @Autowired
+    private NettyServerHandler nettyServerHandler;
+
     @GetMapping("/test")
     public ResponceBody test() {
 
-        Set set = setRepository.findAllById("601764207ab6bd57abbe0af0");
-        if (set == null || !set.isSetpower()) {
-            return new ResponceBody().error(ErrorCode.Setting_power_false, "test");
-        }
+//        WayBillTask wayBillTask = wayBillTaskRepository.findByTaskIdAndStatusAndStage(
+//                "task_b8a16817156c40b5a7a6be26772b5578",
+//                Status.RUNNING.getCode(),
+//                TaskStageEnum.PP_TO_TAKELEADINGPOINT.toString());
+
+        System.out.println(nettyServerHandler.checkGreenLedStatus("NO.2"));
+
+//        Set set = setRepository.findAllById("601764207ab6bd57abbe0af0");
+//        if (set == null || !set.isSetpower()) {
+//            return new ResponceBody().error(ErrorCode.Setting_power_false, "test");
+//        }
 
         return new ResponceBody().success(true);
     }

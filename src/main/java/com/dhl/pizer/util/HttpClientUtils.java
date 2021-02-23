@@ -2,6 +2,7 @@ package com.dhl.pizer.util;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -11,11 +12,9 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.springframework.http.HttpStatus;
-
-import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.Map;
 
+@Slf4j
 public class HttpClientUtils {
 
     /**
@@ -27,7 +26,7 @@ public class HttpClientUtils {
 
         HttpClient httpclient = HttpClientBuilder.create().build();
         HttpGet get = new HttpGet(reqUrl);
-        System.out.println("请求url: " + reqUrl);
+        log.info("请求url: " + reqUrl);
 
         JSONObject response = null;
         try {
@@ -67,10 +66,13 @@ public class HttpClientUtils {
             throw new RuntimeException("参数转换异常:" + e);
         }
 
-        System.out.println(JSON.toJSON(json));
+        log.info("req json = " + JSON.toJSON(json));
 
         try {
             HttpResponse res = httpclient.execute(post);
+            log.info("res code = " + JSON.toJSON(res.getStatusLine().getStatusCode()));
+            log.info("res message = " + EntityUtils.toString(res.getEntity()));
+
             if (res.getStatusLine().getStatusCode() == HttpStatus.OK.value()) {
                 String result = EntityUtils.toString(res.getEntity());// 返回json格式：
                 if (StringUtils.isNoneBlank(result)) {

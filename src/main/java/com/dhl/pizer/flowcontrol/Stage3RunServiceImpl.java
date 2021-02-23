@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.dhl.pizer.conf.AppApiEnum;
 import com.dhl.pizer.conf.IpLedConfig;
 import com.dhl.pizer.conf.Prefix;
+import com.dhl.pizer.conf.ProjectToStagesRelation;
 import com.dhl.pizer.conf.Status;
 import com.dhl.pizer.conf.TaskStageEnum;
 import com.dhl.pizer.dao.TaskRepository;
@@ -26,6 +27,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -51,22 +53,21 @@ public class Stage3RunServiceImpl extends AbstractLinkedProcessorFlow {
         task.setStage(TaskStageEnum.PLUGBOARDTEST_TO_TAKEPOINT.toString());
         taskRepository.save(task);
 
-        WayBillTask wayBillTask = WayBillTask.builder().taskId(taskId).status(Status.RUNNING.getCode())
-                .stage(TaskStageEnum.PLUGBOARDTEST_TO_TAKEPOINT.toString()).build();
-        Example<WayBillTask> example = Example.of(wayBillTask);
-        Optional<WayBillTask> wayBillTaskOp = wayBillTaskRepository.findOne(example);
-        if (wayBillTaskOp.isPresent()) {
+        WayBillTask wayBillTask = wayBillTaskRepository.findByTaskIdAndStatusAndStage(
+                taskId,
+                Status.RUNNING.getCode(),
+                TaskStageEnum.PLUGBOARDTEST_TO_TAKEPOINT.toString());
+
+        if (wayBillTask != null) {
             // 已经添加数据， 检查执行状态是否结束
             // 开始查询运单状态
-            wayBillTask = wayBillTaskOp.get();
-            JSONObject queryRes = HttpClientUtils.getForJsonResult(
+            JSONObject queryTaskRes = HttpClientUtils.getForJsonResult(
                     AppApiEnum.queryTaskUrl.getDesc() + wayBillTask.getWayBillTaskId());
 
-            if (queryRes.get("state").equals("FINISHED")) {
+            JSONObject queryVehicleRes = HttpClientUtils.getForJsonResult(
+                    AppApiEnum.queryVehicleUrl.getDesc() + task.getIntendedVehicle());
 
-                // 更新task的车辆信息
-                task.setIntendedVehicle(queryRes.get("intendedVehicle").toString());
-                taskRepository.save(task);
+            if (queryVehicleRes.get("currentDestination").equals(task.getTakeLocation())) {
 
                 // 接口查下当前任务状态，若完成则更新FINISHED
                 wayBillTask.setStatus(Status.FINISHED.getCode());
@@ -80,12 +81,24 @@ public class Stage3RunServiceImpl extends AbstractLinkedProcessorFlow {
             // 提交参数
             JSONObject params = new JSONObject();
 
+            // 添加数据
+            String wayBillTaskId = Prefix.WayBillPrefix + UuidUtils.getUUID();
+
             // destinations
             // 放下插齿，收回插齿
             JSONArray destinations = new JSONArray();
+            JSONObject wait = SeerParamUtil.buildDestinations(
+                    task.getTakeLocation(), "Wait", "device:requestAtSend",  wayBillTaskId+ ":wait");
+            destinations.add(wait);
+            JSONObject wait1 = SeerParamUtil.buildDestinations(
+                    task.getTakeLocation(), "Wait", "device:queryAtExecuted", wayBillTaskId+ ":wait");
+            destinations.add(wait1);
             JSONObject forkUnload = SeerParamUtil.buildDestinations(
-                    task.getTakeLocation(), "ForkUnload", "end_height", "0");
+                    task.getTakeLocation(), "ForkUnload", "end_height", "1");
             destinations.add(forkUnload);
+            JSONObject forkUnload1 = SeerParamUtil.buildDestinations(
+                    task.getTakeLocation(), "ForkForward", "dist", "1");
+            destinations.add(forkUnload1);
 
             // 补充参数
             params.put("deadline", task.getDeadlineTime());
@@ -94,14 +107,21 @@ public class Stage3RunServiceImpl extends AbstractLinkedProcessorFlow {
             params.put("properties", new ArrayList<>());
             params.put("intendedVehicle", "");
 
-            // 添加数据
-            String wayBillTaskId = Prefix.WayBillPrefix + UuidUtils.getUUID();
-            wayBillTask = WayBillTask.builder().taskId(taskId).wayBillTaskId(wayBillTaskId)
+            wayBillTask = WayBillTask.builder().taskId(taskId).wayBillTaskId(wayBillTaskId).lock(true)
                     .stage(TaskStageEnum.PLUGBOARDTEST_TO_TAKEPOINT.toString()).status(Status.RUNNING.getCode())
                     .param(params.toJSONString()).createTime(new Date()).updateTime(new Date()).build();
             wayBillTaskRepository.insert(wayBillTask);
 
             HttpClientUtils.doPost(AppApiEnum.sendTaskUrl.getDesc() + wayBillTaskId, params);
+
+            // agv任务可放行，将上个阶段放行
+            List<String> stages = ProjectToStagesRelation.projectToStagesMap.get(task.getProject());
+            String lastStage = stages.get(stages.indexOf(TaskStageEnum.PLUGBOARDTEST_TO_TAKEPOINT.toString()) - 1);
+
+            WayBillTask lastWayBillTask = wayBillTaskRepository.findAllByTaskIdAndStage(taskId, lastStage);
+            lastWayBillTask.setLock(false);
+            lastWayBillTask.setUpdateTime(new Date());
+            wayBillTaskRepository.save(lastWayBillTask);
 
             return false;
         }

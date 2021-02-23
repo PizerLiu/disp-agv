@@ -29,6 +29,9 @@ public class WayBillTask implements Serializable {
     @ApiModelProperty("运单任务状态")
     private int status;
 
+    @ApiModelProperty("任务锁")
+    private boolean lock;
+
     @ApiModelProperty("运单参数")
     private String param;
 
@@ -40,12 +43,13 @@ public class WayBillTask implements Serializable {
 
     }
 
-    public WayBillTask(String id, String taskId, String stage, String wayBillTaskId, int status, String param, Date createTime, Date updateTime) {
+    public WayBillTask(String id, String taskId, String stage, String wayBillTaskId, int status, boolean lock, String param, Date createTime, Date updateTime) {
         this.id = id;
         this.taskId = taskId;
         this.stage = stage;
         this.wayBillTaskId = wayBillTaskId;
         this.status = status;
+        this.lock = lock;
         this.param = param;
         this.createTime = createTime;
         this.updateTime = updateTime;
