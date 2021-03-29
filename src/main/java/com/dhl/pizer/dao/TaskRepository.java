@@ -18,4 +18,6 @@ public interface TaskRepository extends MongoRepository<Task, String> {
     Page<Task> findAllByDeviceId(String deviceId, Pageable pageable);
 
     List<Task> findAllByTaskId(String taskId);
+
+    
 }

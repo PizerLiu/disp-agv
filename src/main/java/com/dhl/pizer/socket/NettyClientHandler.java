@@ -1,19 +1,18 @@
 package com.dhl.pizer.socket;
 
 import com.alibaba.fastjson.JSONObject;
+
+import org.springframework.beans.factory.annotation.Autowired;
+
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class NettyClientHandler extends ChannelInboundHandlerAdapter {
-
+    
     private JSONObject messageJson;
-
-    public JSONObject getMmessageJson() {
-        return messageJson;
-    }
-
+    
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         log.info("客户端Active .....");
@@ -21,9 +20,10 @@ public class NettyClientHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        log.info(msg.toString());
-
-        messageJson = JSONObject.parseObject(msg.toString());
+        String msg1 = msg.toString().substring(0, msg.toString().indexOf("{"));
+        String msg2 = msg.toString().substring(msg.toString().indexOf("{"));
+        messageJson = JSONObject.parseObject(msg2);
+        log.info("客户端收到消息:{}", msg2);
     }
 
     @Override

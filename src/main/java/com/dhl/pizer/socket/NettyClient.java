@@ -24,7 +24,7 @@ public class NettyClient {
     private EventLoopGroup group = new NioEventLoopGroup();
 
     private Integer port = 8179;
-
+    
     private String host = "192.168.0.105";
 
     private SocketChannel socketChannel;

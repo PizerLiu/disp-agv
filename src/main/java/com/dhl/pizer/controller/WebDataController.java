@@ -87,6 +87,13 @@ public class WebDataController {
         return new ResponceBody().success(locations);
     }
 
+    @ApiOperation("根据库位类型查看信息")
+    @GetMapping("/location/findbytype")
+    public ResponceBody findLocationByType(@RequestParam("type") String type) {
+        List<Location> location = locationRepository.findByType(type);
+        return new ResponceBody().success(location);
+    }
+
     @ApiOperation("分页查看运单信息")
     @GetMapping("/location/list")
     public ResponceBody getLocationList(

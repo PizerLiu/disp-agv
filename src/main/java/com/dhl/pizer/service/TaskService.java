@@ -4,6 +4,6 @@ import com.dhl.pizer.vo.ResponceBody;
 
 public interface TaskService {
 
-    ResponceBody createTask(String projectName, String startLocation);
+    ResponceBody createTask(String projectName, String startLocation, String endLocation);
 
 }

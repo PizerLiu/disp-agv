@@ -34,7 +34,10 @@ public class Location implements Serializable {
     @ApiModelProperty("占用taskId")
     private String taskId = "";
 
-    @ApiModelProperty("放货库位(deliveryLocation)、取货库位(takeLocation)")
+    @ApiModelProperty("父级Id")
+    private String fatherLocationId = "";
+
+    @ApiModelProperty("放货库位(deliveryLocation)、取货库位(takeLocation)、辅助点(auxiliary)")
     private String type;
 
     private Date createTime;

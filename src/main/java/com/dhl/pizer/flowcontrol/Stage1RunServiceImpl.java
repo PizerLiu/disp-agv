@@ -107,7 +107,7 @@ public class Stage1RunServiceImpl extends AbstractLinkedProcessorFlow<Object> {
             destinations.add(wait1);
             JSONObject forkUnload = SeerParamUtil.buildDestinations(
                     task.getTakeLocation().equals("LOC-AP1002") ? "LOC-AP1000" : "LOC-AP1000",
-                    "ForkUnload", "end_height", "0.5");
+                    "ForkUnload", "end_height", "0.1");
             destinations.add(forkUnload);
 
             // 补充参数

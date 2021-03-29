@@ -16,11 +16,10 @@ public class ProjectToStagesRelation {
             add( "DISCHARGELEADINGPOINT_TO_DISCHARGEPOINT" );
         }});
         put( "阿斯利康-手持端" , new ArrayList<String>() {{
-            add( "PP_TO_TAKELEADINGPOINT" );
-            add( "PICKUPPOINT_TO_PLUGBOARDTEST" );
-            add( "PLUGBOARDTEST_TO_TAKEPOINT" );
-            add( "TAKEPOINT_TO_DISCHARGELEADINGPOINT" );
-            add( "DISCHARGELEADINGPOINT_TO_DISCHARGEPOINT" );
+            add( "MOBILE_PP_TO_TAKELEADINGPOINT" );
+            add( "MOBILE_TAKELEADINGPOINT_TO_TAKEPOINT" );
+            add( "MOBILE_TAKEPOINT_TO_DISCHARGELEADINGPOINT" );
+            add( "MOBILE_DISCHARGELEADINGPOINT_TO_DISCHARGEPOINT" );
         }});
     }};
 

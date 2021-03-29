@@ -97,7 +97,7 @@ public class NettyServerHandler extends ChannelInboundHandlerAdapter {
         if (message.getRegId().equals("LOC-AP1000") && message.getIoState().endsWith("11")) {
             log.info("成功触发任务！");
             taskService = SpringContextUtil.getApplicationContext().getBean(TaskService.class);
-            taskService.createTask("阿斯利康-传感器触发", "LOC-AP1002");
+            taskService.createTask("阿斯利康-传感器触发", "LOC-AP1002", "");
         }
 
         log.info("服务器收到消息: {}", message.toString());

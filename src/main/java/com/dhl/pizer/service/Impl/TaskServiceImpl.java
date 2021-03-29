@@ -37,7 +37,7 @@ public class TaskServiceImpl implements TaskService {
     private SetRepository setRepository;
 
     @Override
-    public ResponceBody createTask(String projectName, String startLocation) {
+    public ResponceBody createTask(String projectName, String startLocation, String endLocation) {
 
         String taskId = Prefix.TaskPrefix + UuidUtils.getUUID();
         Set set = setRepository.findAllById("601764207ab6bd57abbe0af0");
@@ -57,7 +57,7 @@ public class TaskServiceImpl implements TaskService {
         // 创建task任务
         Task task = Task.builder().taskId(taskId).stage(
                 ProjectToStagesRelation.projectToStagesMap.get(projectName).get(0)).deadlineTime(deadlineTime)
-                .status(Status.RUNNING.getCode()).project(projectName).takeLocation(startLocation).createTime(new Date())
+                .status(Status.RUNNING.getCode()).project(projectName).takeLocation(startLocation).deliveryLocation(endLocation).createTime(new Date())
                 .updateTime(new Date()).build();
         taskRepository.insert(task);
 

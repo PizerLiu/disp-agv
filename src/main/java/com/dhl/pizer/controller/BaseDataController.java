@@ -14,6 +14,7 @@ import com.dhl.pizer.entity.WayBillTask;
 import com.dhl.pizer.service.TaskService;
 import com.dhl.pizer.socket.NettyServerHandler;
 import com.dhl.pizer.util.UuidUtils;
+import com.dhl.pizer.vo.MobileAddTaskDto;
 import com.dhl.pizer.vo.ResponceBody;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -93,7 +94,7 @@ public class BaseDataController {
      @GetMapping("/add")
      public ResponceBody insertTask(@RequestParam("start_location") String startLocation) {
 
-         return taskService.createTask("阿斯利康-手持端", "LOC-AP1002");
+         return taskService.createTask("阿斯利康-手持端", "LOC-AP1002", "");
      }
 
 //    @ApiOperation("添加运单任务")
@@ -126,6 +127,12 @@ public class BaseDataController {
     public ResponceBody findTask(@RequestParam("taskId") String taskId) {
         List<Task> tasks = taskRepository.findAllByTaskId(taskId);
         return new ResponceBody().success(tasks);
+    }
+
+    @ApiOperation("app添加运单任务")
+    @PostMapping("/addby")
+    public ResponceBody addTask(@RequestBody MobileAddTaskDto mobileAddTaskDto) {
+        return taskService.createTask("阿斯利康-手持端", mobileAddTaskDto.getTakeLocation(), mobileAddTaskDto.getDeliveryLocation());
     }
 }
 
