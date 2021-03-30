@@ -40,6 +40,15 @@ public class Location implements Serializable {
     @ApiModelProperty("放货库位(deliveryLocation)、取货库位(takeLocation)、辅助点(auxiliary)")
     private String type;
 
+    @ApiModelProperty("绑定辅助点")
+    private String auxiliarylocation;
+
+    @ApiModelProperty("辅助点绑定情况")
+    private String dtauxiliary = "00";
+
+    @ApiModelProperty("插齿高度")
+    private float teethH;
+
     private Date createTime;
 
     private Date updateTime;

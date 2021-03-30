@@ -3,8 +3,10 @@ package com.dhl.pizer.flowcontrol;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.dhl.pizer.conf.*;
+import com.dhl.pizer.dao.LocationRepository;
 import com.dhl.pizer.dao.TaskRepository;
 import com.dhl.pizer.dao.WayBillTaskRepository;
+import com.dhl.pizer.entity.Location;
 import com.dhl.pizer.entity.Task;
 import com.dhl.pizer.entity.WayBillTask;
 import com.dhl.pizer.flowcontrol.flowchain.AbstractLinkedProcessorFlow;
@@ -31,6 +33,9 @@ public class Stage3MobileRunServiceImpl extends AbstractLinkedProcessorFlow<Obje
     @Autowired
     private WayBillTaskRepository wayBillTaskRepository;
 
+    @Autowired
+    private LocationRepository locationRepository;
+
     @Override
     public boolean entry(ControlArgs controlArgs) throws BugException {
 
@@ -41,11 +46,17 @@ public class Stage3MobileRunServiceImpl extends AbstractLinkedProcessorFlow<Obje
         // 取货点：
         String takeLocation = task.getTakeLocation() ;
         // 查询对应起始点的辅助点，起始点的前置点：
-        String takeLocationF = "LOC-AP5";
+        //String takeLocationF = "LOC-AP5";
+        Location location1 = locationRepository.findByLocation(takeLocation);
+        String takeLocationF = location1.getAuxiliarylocation();
+        String teethH = Float.toString(location1.getTeethH());
+
         // 放货点：
         String deliveryLocation = task.getDeliveryLocation();
         // 查询对应放货点的辅助点，放货点的前置点：
-        String deliveryLocationF = "LOC-AP2";
+        //String deliveryLocationF = "LOC-AP2";
+        Location location2 = locationRepository.findByLocation(deliveryLocation);
+        String deliveryLocationF = location2.getAuxiliarylocation();
 
         // 更新task的stage
         task.setStage(TaskStageEnum.MOBILE_TAKEPOINT_TO_DISCHARGELEADINGPOINT.toString());
@@ -101,7 +112,7 @@ public class Stage3MobileRunServiceImpl extends AbstractLinkedProcessorFlow<Obje
                     deliveryLocationF, "Wait", "device:queryAtExecuted", wayBillTaskId+ ":wait");
             destinations.add(wait1);
             JSONObject forkUnload = SeerParamUtil.buildDestinations(
-                    deliveryLocationF, "ForkUnload", "end_height", "0.6");
+                    deliveryLocationF, "ForkUnload", "end_height", teethH);
             destinations.add(forkUnload);
 
             // 补充参数

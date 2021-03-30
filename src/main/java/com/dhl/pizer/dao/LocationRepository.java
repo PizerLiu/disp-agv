@@ -14,4 +14,5 @@ public interface LocationRepository extends MongoRepository<Location, String> {
 
     List<Location> findAllByLocation(String location);
 
+    //List<Location>  findALLByType
 }

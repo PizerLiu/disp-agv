@@ -113,4 +113,10 @@ public class WebDataController {
         return new ResponceBody().success(locations);
     }
 
+    // @ApiOperation("查看辅助点")
+    // @GetMapping("/location/auxiliary")
+    // public ResponceBody getAuxiliary(@RequestParam("type") String type/*,@RequestParam("dtauxiliary") String dtauxiliary*/){
+    //     List<Location> location = locationRepository.findByType(type);
+    //     return new ResponceBody().success(location);
+    // 
 }
