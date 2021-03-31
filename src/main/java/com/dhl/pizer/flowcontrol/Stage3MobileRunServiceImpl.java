@@ -49,7 +49,6 @@ public class Stage3MobileRunServiceImpl extends AbstractLinkedProcessorFlow<Obje
         //String takeLocationF = "LOC-AP5";
         Location location1 = locationRepository.findByLocation(takeLocation);
         String takeLocationF = location1.getAuxiliarylocation();
-        String teethH = Float.toString(location1.getTeethH());
 
         // 放货点：
         String deliveryLocation = task.getDeliveryLocation();
@@ -101,6 +100,9 @@ public class Stage3MobileRunServiceImpl extends AbstractLinkedProcessorFlow<Obje
 
             // 添加数据
             String wayBillTaskId = Prefix.WayBillPrefix + UuidUtils.getUUID();
+
+            Location deliveryLocationFLocation = locationRepository.findByLocation(deliveryLocationF);
+            String teethH = Float.toString(deliveryLocationFLocation.getTeethH());
 
             // destinations
             // 放下插齿，收回插齿

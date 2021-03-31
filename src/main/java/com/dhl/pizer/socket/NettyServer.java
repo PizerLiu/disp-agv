@@ -32,7 +32,7 @@ public class NettyServer {
      */
     private EventLoopGroup work = new NioEventLoopGroup();
 
-    private Integer port = 8080;
+    private Integer port = 8180;
 
     /**
      * 启动Netty Server
