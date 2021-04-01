@@ -113,12 +113,15 @@ public class Stage2MobileRunServiceImpl extends AbstractLinkedProcessorFlow<Obje
             JSONObject wait1 = SeerParamUtil.buildDestinations(
                     takeLocation, "Wait", "device:queryAtExecuted", wayBillTaskId+ ":wait");
             destinations.add(wait1);
-            JSONObject forkUnload = SeerParamUtil.buildDestinations(
-                    takeLocation, "ForkUnload", "end_height", teethH);
-            destinations.add(forkUnload);
             JSONObject forkForward = SeerParamUtil.buildDestinations(
                     takeLocation, "ForkForward", "fork_dist", "1");
             destinations.add(forkForward);
+            JSONObject forkUnload = SeerParamUtil.buildDestinations(
+                    takeLocation, "ForkUnload", "end_height", teethH);
+            destinations.add(forkUnload);
+            JSONObject forkForward2 = SeerParamUtil.buildDestinations(
+                    takeLocation, "ForkForward", "fork_dist", "0");
+            destinations.add(forkForward2);
 
             // 补充参数
             params.put("destinations", destinations);
