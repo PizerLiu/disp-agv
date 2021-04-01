@@ -45,6 +45,14 @@ public class TaskServiceImpl implements TaskService {
             return new ResponceBody().error(ErrorCode.Setting_power_false, taskId);
         }
 
+        if (startLocation == null || startLocation.isEmpty()) {
+            return new ResponceBody().error(ErrorCode.Param_StartLocation_Not_Exist, taskId);
+        }
+
+        if (endLocation == null || endLocation.isEmpty()) {
+            return new ResponceBody().error(ErrorCode.Param_EndLocation_Not_Exist, taskId);
+        }
+
         // 计算deadline时间
         Calendar c = Calendar.getInstance();
         c.setTime(new Date());

@@ -33,9 +33,9 @@ public enum AppApiEnum {
 
     // operation: ForkForward
 
-    sendTaskUrl("http://192.168.0.88:7100/api/route/transportOrders/"),//发送任务的url
-    queryTaskUrl("http://192.168.0.88:7100/api/route/transportOrders/"),//检查任务的url
-    queryVehicleUrl("http://192.168.0.88:7100/api/route/vehicles/"),//检查车辆的url
+    sendTaskUrl("http://192.168.10.175:7100/api/route/transportOrders/"),//发送任务的url
+    queryTaskUrl("http://192.168.10.175:7100/api/route/transportOrders/"),//检查任务的url
+    queryVehicleUrl("http://192.168.10.175:7100/api/route/vehicles/"),//检查车辆的url
     startOperation("Wait"),
     startPropertiesKey("device:queryAtExecuted"),
     startPropertiesValue("1"),
@@ -47,7 +47,7 @@ public enum AppApiEnum {
     intendedVehicle("Fork-01"),//叉车号
     upUrl("http://192.168.1.224:7100/v1/plantModel/"),//仙知启动的url
     audioUrl("http://192.168.1.224:7100/robot_other_speaker_req/"),//仙知音频api
-    stopVehicleUrl("http://192.168.0.88:55200/v1/vehicles/");//停止车辆正在执行的任务的url get + 车辆名字
+    stopVehicleUrl("http://192.168.10.175:55200/v1/vehicles/");//停止车辆正在执行的任务的url get + 车辆名字
 
     private String desc;
 
