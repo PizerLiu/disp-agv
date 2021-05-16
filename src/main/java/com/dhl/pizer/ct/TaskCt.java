@@ -6,6 +6,7 @@ import com.dhl.pizer.entity.Task;
 import com.dhl.pizer.flowcontrol.flowchain.ControlArgs;
 import com.dhl.pizer.flowcontrol.flowchain.DefaultFlowChainBuilder;
 import com.dhl.pizer.flowcontrol.flowchain.ProcessorFlowChain;
+import com.dhl.pizer.socket.NettyClient;
 import com.dhl.pizer.vo.BugException;
 import com.dhl.pizer.vo.ResponceBody;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +26,9 @@ public class TaskCt {
 
     @Autowired
     private TaskRepository taskRepository;
+
+    @Autowired
+    private NettyClient nettyClient;
 
     @Scheduled(cron = "*/5 * * * * ?")
     public void scaleTask() {
@@ -53,4 +57,11 @@ public class TaskCt {
             }
         }
     }
+
+    @Scheduled(cron = "*/5 * * * * ?")
+    public void scaleDi() {
+        nettyClient.sendMsg("5A0100010000000003F5000000000000");
+    }
+
+
 }

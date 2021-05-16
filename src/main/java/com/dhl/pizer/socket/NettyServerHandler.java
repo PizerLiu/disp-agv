@@ -2,9 +2,14 @@ package com.dhl.pizer.socket;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.dhl.pizer.conf.ErrorCode;
+import com.dhl.pizer.dao.SetRepository;
+import com.dhl.pizer.entity.Set;
+import com.dhl.pizer.service.SetService;
 import com.dhl.pizer.service.TaskService;
 import com.dhl.pizer.util.SpringContextUtil;
 import com.dhl.pizer.vo.Message;
+import com.dhl.pizer.vo.ResponceBody;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.extern.slf4j.Slf4j;
@@ -13,8 +18,12 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.net.InetSocketAddress;
+import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Component
 @Slf4j
@@ -22,6 +31,21 @@ public class NettyServerHandler extends ChannelInboundHandlerAdapter {
 
     @Autowired
     private TaskService taskService;
+
+    /**
+     * 传感器触发标志位
+     */
+    private static boolean tag = true;
+
+    /**
+     * 货物取走标志位
+     */
+    private static boolean hTag = true;
+
+    /**
+     * 启动亮灯标志
+     */
+    private static boolean initLedTag = true;
 
     /**
      * 记录regId -> 灯
@@ -49,15 +73,21 @@ public class NettyServerHandler extends ChannelInboundHandlerAdapter {
         return regIdGreenLed.get(regId);
     }
 
-    @PostConstruct
-    private void init() {
-        // 取货口
-        regIdGreenLed.put("LOC-AP1000", false);
-        regIdGreenLed.put("LOC-AP1001", false);
+    public void sethTag(boolean hTag) {
+        this.hTag = hTag;
+    }
 
-        // 放货口
-        regIdGreenLed.put("NO.2", false);
-        regIdGreenLed.put("NO.3", true);
+    /**
+     * 给对应点发送消息
+     */
+    public boolean sendMessage(String regId, String message) {
+        ChannelHandlerContext ctx = regIdCtx.get(regId);
+        if (ctx == null) {
+            return false;
+        }
+
+        ctx.writeAndFlush(message);
+        return true;
     }
 
     /**
@@ -65,7 +95,6 @@ public class NettyServerHandler extends ChannelInboundHandlerAdapter {
      */
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-
         InetSocketAddress insocket = (InetSocketAddress) ctx.channel().remoteAddress();
         String clientIP = insocket.getAddress().getHostAddress();
         log.info("客户端连接！clientIP = " + clientIP);
@@ -76,9 +105,13 @@ public class NettyServerHandler extends ChannelInboundHandlerAdapter {
      */
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        log.info(msg.toString());
 
-        JSONObject messageJson = JSONObject.parseObject(msg.toString());
+        JSONObject messageJson = null;
+        try {
+            messageJson = JSONObject.parseObject(msg.toString());
+        } catch (Exception e) {
+            return;
+        }
         Message message = JSON.toJavaObject(messageJson, Message.class);
 
         if (message == null ||
@@ -87,20 +120,81 @@ public class NettyServerHandler extends ChannelInboundHandlerAdapter {
                 message.getIoState() == null || message.getIoState().isEmpty()) {
             return;
         }
-        log.info("任务触发参数校验通过！");
+
         // 存储client的ctx
         regIdCtx.put(message.getRegId(), ctx);
-        // 存储每个设备的绿灯状态
-        regIdGreenLed.put(message.getRegId(), message.getIoState().substring(1, 2).equals("1"));
-
-        // 取货口，有货物到了
-        if (message.getRegId().equals("LOC-AP1000") && message.getIoState().endsWith("11")) {
-            log.info("成功触发任务！");
-            taskService = SpringContextUtil.getApplicationContext().getBean(TaskService.class);
-            taskService.createTask("阿斯利康-传感器触发", "LOC-AP1002", "");
+        if (message.getRegId().equals("LOC-AP5") && initLedTag) {
+            // 开绿灯
+            initLedTag = false;
+            ctx.write("OPEN 1");
         }
 
-        log.info("服务器收到消息: {}", message.toString());
+        // 存储每个设备的绿灯状态
+        if (message.getRegId().equals("LOC-AP1")) {
+            regIdGreenLed.put("LOC-AP11", message.getIoState().substring(4, 6).equals("01"));
+        } else {
+            regIdGreenLed.put(message.getRegId(), message.getIoState().substring(1, 2).equals("0"));
+        }
+
+        // 取货口，有货物到了
+        taskService = SpringContextUtil.getApplicationContext().getBean(TaskService.class);
+        Set set = taskService.setting("601764207ab6bd57abbe0af0");
+        if (set == null || !set.isSetpower()) {
+            return;
+        }
+
+        Set hTagSet = taskService.setting("601764207ab6bd57abbe0af1");
+        if (hTagSet == null) {
+            SetService setService = SpringContextUtil.getApplicationContext().getBean(SetService.class);
+            Set set1 = new Set();
+            set1.setId("601764207ab6bd57abbe0af1");
+            set1.setHTag(true);
+            set1.setSetPhotoelectricity(true);
+            set1.setUpdateTime(new Date());
+            setService.addOrUpdate(set1);
+        }
+        hTag = hTagSet.isHTag();
+
+        // todo LOC-AP1 才是16位的，其他为8位；
+//        log.info("tag = " + tag);
+//        log.info("hTag = " + hTag);
+        if (message.getRegId().equals("LOC-AP1") && message.getIoState().substring(11, 12).equals("0") && tag && hTag) {
+
+            SetService setService = SpringContextUtil.getApplicationContext().getBean(SetService.class);
+            // 30s内触发的只当作一次
+            Set currentSet = setService.findAllById("601764207ab6bd57abbe0af1");
+
+            // 数据库开关
+            if (!currentSet.isSetPhotoelectricity()) {
+                log.warn("请检查数据库配置：601764207ab6bd57abbe0af1， 请将setPhotoelectricity设置为true！");
+                return;
+            }
+
+            if ( new Date().getTime() - currentSet.getUpdateTime().getTime() < 30 * 1000 ) {
+                log.warn("光电30s内无法同时触发！");
+                return;
+            }
+
+            log.info("成功触发任务！");
+            tag = false;
+
+            Set set2 = new Set();
+            set2.setId("601764207ab6bd57abbe0af1");
+            set2.setHTag(false);
+            set2.setUpdateTime(new Date());
+            setService.addOrUpdate(set2);
+
+            taskService.createTask("阿斯利康-传感器触发", "LOC-AP1", "");
+        } else if (message.getRegId().equals("LOC-AP1") && message.getIoState().substring(11, 12).equals("1") && !tag && hTag) {
+            log.info("打开触发限制");
+            tag = true;
+        } else {
+            // 只有8位的数据
+            // 保存其他灯的红绿情况
+            // 判断放货点数据，是否有货，更新库位的lock, 0为加锁，1为解锁
+            taskService.setLocationLock(message.getRegId(), message.getIoState().substring(1, 2).equals("0"));
+        }
+//        log.info("服务器收到消息: {}", message.toString());
         ctx.flush();
     }
 

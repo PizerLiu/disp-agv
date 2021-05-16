@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @Slf4j
 @Service("mobile-pp-to-takeleadingpoint")
@@ -87,7 +88,10 @@ public class Stage1MobileRunServiceImpl extends AbstractLinkedProcessorFlow<Obje
             JSONObject queryVehicleRes = HttpClientUtils.getForJsonResult(
                     AppApiEnum.queryVehicleUrl.getDesc() + vehicleName);
 
-            if (queryVehicleRes.get("currentDestination").equals(takeLocationF)) {
+            // todo 检测 queryTaskRes 的状态是waitting时，并且位置是该位置的
+            if (("BEING_PROCESSED".equals(queryTaskRes.get("state")) ||
+                    "FINISHED".equals(queryTaskRes.get("state"))) &&
+                    queryVehicleRes.get("currentPosition").equals(takeLocationF.replace("LOC-", ""))) {
 
                 // 接口查下当前任务状态，若完成则更新FINISHED
                 wayBillTask.setStatus(Status.FINISHED.getCode());
@@ -97,7 +101,7 @@ public class Stage1MobileRunServiceImpl extends AbstractLinkedProcessorFlow<Obje
             }
 
         } else {
-            // 提交参数
+            // 运单参数
             JSONObject params = new JSONObject();
 
             // 添加数据
@@ -120,6 +124,7 @@ public class Stage1MobileRunServiceImpl extends AbstractLinkedProcessorFlow<Obje
             destinations.add(forkUnload);
 
             // 补充参数
+            params.put("wrappingSequence", taskId);
             params.put("destinations", destinations);
             params.put("dependencies", new ArrayList<>());
             params.put("properties", new ArrayList<>());
@@ -132,7 +137,18 @@ public class Stage1MobileRunServiceImpl extends AbstractLinkedProcessorFlow<Obje
                     .param(params.toJSONString()).createTime(new Date()).updateTime(new Date()).build();
             wayBillTaskRepository.insert(wayBillTask);
 
-            HttpClientUtils.doPost(AppApiEnum.sendTaskUrl.getDesc() + wayBillTaskId, params);
+            // 运单序列
+            JSONObject sequenceParams = new JSONObject();
+            List wayBillTaskList = new ArrayList();
+            JSONObject wayBillTaskParams = new JSONObject();
+            wayBillTaskParams.put("name", wayBillTaskId);
+            wayBillTaskParams.put("order", params);
+            wayBillTaskList.add(wayBillTaskParams);
+
+            sequenceParams.put("transports", wayBillTaskList);
+            sequenceParams.put("properties", new ArrayList<>());
+
+            HttpClientUtils.doPost(AppApiEnum.sendSequenceTaskUrl.getDesc() + taskId, sequenceParams);
 
             return false;
         }

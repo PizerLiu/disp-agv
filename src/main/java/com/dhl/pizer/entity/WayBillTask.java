@@ -30,7 +30,7 @@ public class WayBillTask implements Serializable {
     private int status;
 
     @ApiModelProperty("任务锁")
-    private boolean lock;
+    private boolean lock = true;
 
     @ApiModelProperty("运单参数")
     private String param;

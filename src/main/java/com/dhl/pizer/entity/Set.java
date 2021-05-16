@@ -10,6 +10,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.io.Serializable;
+import java.util.Date;
 
 @Builder
 @AllArgsConstructor
@@ -25,4 +26,13 @@ public class Set implements Serializable{
 
     @ApiModelProperty("是否连接")
     private boolean setpower;
+
+    @ApiModelProperty("货物可取tag")
+    private boolean hTag;
+
+    @ApiModelProperty("是否连接")
+    private boolean setPhotoelectricity;
+
+    @ApiModelProperty("更新时间")
+    private Date updateTime;
 }

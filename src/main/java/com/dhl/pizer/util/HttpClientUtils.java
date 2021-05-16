@@ -66,6 +66,7 @@ public class HttpClientUtils {
             throw new RuntimeException("参数转换异常:" + e);
         }
 
+        log.info("url = " + url);
         log.info("req json = " + JSON.toJSON(json));
 
         try {

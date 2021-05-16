@@ -7,8 +7,10 @@ import com.dhl.pizer.conf.ErrorCode;
 import com.dhl.pizer.conf.Prefix;
 import com.dhl.pizer.conf.Status;
 import com.dhl.pizer.conf.TaskStageEnum;
+import com.dhl.pizer.dao.LocationRepository;
 import com.dhl.pizer.dao.TaskRepository;
 import com.dhl.pizer.dao.WayBillTaskRepository;
+import com.dhl.pizer.entity.Location;
 import com.dhl.pizer.entity.Task;
 import com.dhl.pizer.entity.WayBillTask;
 import com.dhl.pizer.flowcontrol.flowchain.AbstractLinkedProcessorFlow;
@@ -27,18 +29,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Optional;
+import java.util.*;
 
 @Slf4j
 @Service("pp-to-takeleadingpoint")
 public class Stage1RunServiceImpl extends AbstractLinkedProcessorFlow<Object> {
-
-    private long startTime;
-
-    private long endTime;
 
     @Autowired
     private TaskRepository taskRepository;
@@ -46,12 +41,28 @@ public class Stage1RunServiceImpl extends AbstractLinkedProcessorFlow<Object> {
     @Autowired
     private WayBillTaskRepository wayBillTaskRepository;
 
+    @Autowired
+    private LocationRepository locationRepository;
+
     @Override
     public boolean entry(ControlArgs controlArgs) throws BugException {
 
         String taskId = controlArgs.getTaskId();
 
         Task task = taskRepository.findByTaskId(taskId);
+
+        // 取货点：
+        String takeLocation = task.getTakeLocation() ;
+        // 查询对应起始点的辅助点，起始点的前置点：
+        //String takeLocationF = "LOC-AP5";
+        Location location1 = locationRepository.findByLocation(takeLocation);
+        String takeLocationF = location1.getAuxiliarylocation();
+
+        // 放货点：
+        String deliveryLocation = task.getDeliveryLocation();
+        // 查询对应放货点的辅助点，放货点的前置点：
+        //String deliveryLocationF = "LOC-AP2";
+
         // 更新task的stage
         task.setStage(TaskStageEnum.PP_TO_TAKELEADINGPOINT.toString());
         task.setTakeLocation(task.getTakeLocation());
@@ -80,7 +91,9 @@ public class Stage1RunServiceImpl extends AbstractLinkedProcessorFlow<Object> {
             JSONObject queryVehicleRes = HttpClientUtils.getForJsonResult(
                     AppApiEnum.queryVehicleUrl.getDesc() + vehicleName);
 
-            if (queryVehicleRes.get("currentDestination").equals("LOC-AP1000")) {
+            if (("BEING_PROCESSED".equals(queryTaskRes.get("state")) ||
+                    "FINISHED".equals(queryTaskRes.get("state"))) &&
+                    queryVehicleRes.get("currentPosition").equals(takeLocationF.replace("LOC-", ""))) {
 
                 // 接口查下当前任务状态，若完成则更新FINISHED
                 wayBillTask.setStatus(Status.FINISHED.getCode());
@@ -96,21 +109,24 @@ public class Stage1RunServiceImpl extends AbstractLinkedProcessorFlow<Object> {
             // 添加数据
             String wayBillTaskId = Prefix.WayBillPrefix + UuidUtils.getUUID();
 
+            Location takeLocationFLocation = locationRepository.findByLocation(takeLocationF);
+            String teethH = Float.toString(takeLocationFLocation.getTeethH());
+
             // destinations
             // 放下插齿，收回插齿
             JSONArray destinations = new JSONArray();
             JSONObject wait = SeerParamUtil.buildDestinations(
-                    task.getTakeLocation().equals("LOC-AP1002") ? "LOC-AP1000" : "LOC-AP1000", "Wait", "device:requestAtSend",  wayBillTaskId+ ":wait");
+                    takeLocationF, "Wait", "device:requestAtSend",  wayBillTaskId+ ":wait");
             destinations.add(wait);
             JSONObject wait1 = SeerParamUtil.buildDestinations(
-                    task.getTakeLocation().equals("LOC-AP1002") ? "LOC-AP1000" : "LOC-AP1000", "Wait", "device:queryAtExecuted", wayBillTaskId+ ":wait");
+                    takeLocationF, "Wait", "device:queryAtExecuted", wayBillTaskId+ ":wait");
             destinations.add(wait1);
             JSONObject forkUnload = SeerParamUtil.buildDestinations(
-                    task.getTakeLocation().equals("LOC-AP1002") ? "LOC-AP1000" : "LOC-AP1000",
-                    "ForkUnload", "end_height", "0.1");
+                    takeLocationF, "ForkUnload", "end_height", teethH);
             destinations.add(forkUnload);
 
             // 补充参数
+            params.put("wrappingSequence", taskId);
             params.put("destinations", destinations);
             params.put("dependencies", new ArrayList<>());
             params.put("properties", new ArrayList<>());
@@ -123,8 +139,18 @@ public class Stage1RunServiceImpl extends AbstractLinkedProcessorFlow<Object> {
                     .param(params.toJSONString()).createTime(new Date()).updateTime(new Date()).build();
             wayBillTaskRepository.insert(wayBillTask);
 
-            HttpClientUtils.doPost(AppApiEnum.sendTaskUrl.getDesc() + wayBillTaskId, params);
+            // 运单序列
+            JSONObject sequenceParams = new JSONObject();
+            List wayBillTaskList = new ArrayList();
+            JSONObject wayBillTaskParams = new JSONObject();
+            wayBillTaskParams.put("name", wayBillTaskId);
+            wayBillTaskParams.put("order", params);
+            wayBillTaskList.add(wayBillTaskParams);
 
+            sequenceParams.put("transports", wayBillTaskList);
+            sequenceParams.put("properties", new ArrayList<>());
+
+            HttpClientUtils.doPost(AppApiEnum.sendSequenceTaskUrl.getDesc() + taskId, sequenceParams);
             return false;
         }
 
@@ -133,8 +159,8 @@ public class Stage1RunServiceImpl extends AbstractLinkedProcessorFlow<Object> {
 
     @Override
     public void exit() {
-        endTime = System.currentTimeMillis();
-//        System.out.println("程序运行时间： " + (endTime - startTime) + "ms");
+
+
     }
 
     public static JSONObject getYdParam(String currentKw, String carId, String endKw, String taskName, int type, String taskTime) {

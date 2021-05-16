@@ -8,13 +8,21 @@ import com.dhl.pizer.conf.Prefix;
 import com.dhl.pizer.conf.ProjectToStagesRelation;
 import com.dhl.pizer.conf.Status;
 import com.dhl.pizer.conf.TaskStageEnum;
+import com.dhl.pizer.dao.LocationRepository;
 import com.dhl.pizer.dao.TaskRepository;
 import com.dhl.pizer.dao.WayBillTaskRepository;
+import com.dhl.pizer.entity.Location;
+import com.dhl.pizer.entity.Set;
 import com.dhl.pizer.entity.Task;
 import com.dhl.pizer.entity.WayBillTask;
 import com.dhl.pizer.flowcontrol.flowchain.AbstractLinkedProcessorFlow;
 import com.dhl.pizer.flowcontrol.flowchain.ControlArgs;
 import com.dhl.pizer.service.RegService;
+import com.dhl.pizer.service.SetService;
+import com.dhl.pizer.service.TaskService;
+import com.dhl.pizer.socket.NettyClient;
+import com.dhl.pizer.socket.NettyClientHandler;
+import com.dhl.pizer.socket.NettyServerHandler;
 import com.dhl.pizer.util.HttpClientUtils;
 import com.dhl.pizer.util.SeerParamUtil;
 import com.dhl.pizer.util.UuidUtils;
@@ -35,13 +43,25 @@ import java.util.Optional;
 public class Stage3RunServiceImpl extends AbstractLinkedProcessorFlow {
 
     @Autowired
+    private NettyServerHandler nettyServerHandler;
+
+    @Autowired
+    private NettyClientHandler nettyClientHandler;
+
+    @Autowired
     private TaskRepository taskRepository;
 
     @Autowired
     private WayBillTaskRepository wayBillTaskRepository;
 
     @Autowired
-    private RegService regService;
+    private LocationRepository locationRepository;
+
+    @Autowired
+    private TaskService taskService;
+
+    @Autowired
+    private SetService setService;
 
     @Override
     public boolean entry(ControlArgs controlArgs) throws BugException {
@@ -49,8 +69,17 @@ public class Stage3RunServiceImpl extends AbstractLinkedProcessorFlow {
         String taskId = controlArgs.getTaskId();
 
         Task task = taskRepository.findByTaskId(taskId);
+
+        // 取货点：
+        String takeLocation = task.getTakeLocation() ;
+        // 查询对应起始点的辅助点，起始点的前置点：
+        //String takeLocationF = "LOC-AP5";
+        Location location1 = locationRepository.findByLocation(takeLocation);
+        String takeLocationF = location1.getAuxiliarylocation();
+
         // 更新task的stage
         task.setStage(TaskStageEnum.PLUGBOARDTEST_TO_TAKEPOINT.toString());
+        task.setTakeLocation(task.getTakeLocation());
         taskRepository.save(task);
 
         WayBillTask wayBillTask = wayBillTaskRepository.findByTaskIdAndStatusAndStage(
@@ -64,10 +93,27 @@ public class Stage3RunServiceImpl extends AbstractLinkedProcessorFlow {
             JSONObject queryTaskRes = HttpClientUtils.getForJsonResult(
                     AppApiEnum.queryTaskUrl.getDesc() + wayBillTask.getWayBillTaskId());
 
-            JSONObject queryVehicleRes = HttpClientUtils.getForJsonResult(
-                    AppApiEnum.queryVehicleUrl.getDesc() + task.getIntendedVehicle());
+            // 更新task的车辆信息
+            if (queryTaskRes.get("processingVehicle") == null || queryTaskRes.get("processingVehicle").equals("")) {
+                return false;
+            }
 
-            if (queryVehicleRes.get("currentDestination").equals(task.getTakeLocation())) {
+            String vehicleName = queryTaskRes.get("processingVehicle").toString();
+            task.setIntendedVehicle(vehicleName);
+            taskRepository.save(task);
+
+            JSONObject queryVehicleRes = HttpClientUtils.getForJsonResult(
+                    AppApiEnum.queryVehicleUrl.getDesc() + vehicleName);
+
+            if ("BEING_PROCESSED".equals(queryTaskRes.get("state"))||
+                    "FINISHED".equals(queryTaskRes.get("state")) &&
+                            queryVehicleRes.get("currentPosition").equals(takeLocation.replace("LOC-", ""))) {
+
+                // 取走货物，标志位改为true，可再次接收任务
+                Set set = new Set();
+                set.setId("601764207ab6bd57abbe0af1");
+                set.setHTag(true);
+                setService.addOrUpdate(set);
 
                 // 接口查下当前任务状态，若完成则更新FINISHED
                 wayBillTask.setStatus(Status.FINISHED.getCode());
@@ -75,8 +121,17 @@ public class Stage3RunServiceImpl extends AbstractLinkedProcessorFlow {
                 wayBillTaskRepository.save(wayBillTask);
                 return true;
             }
+
         } else {
+
             // todo 判断相机检测信号，添加判断，没有打开判断开关，则直接通过
+            Set set = taskService.setting("601764207ab6bd57abbe0af0");
+            if (set.isSetcamera()) {
+                if (!nettyClientHandler.isCamTag()) {
+                    log.info("相机检测未通过，请等待！");
+                    return false;
+                }
+            }
 
             // 提交参数
             JSONObject params = new JSONObject();
@@ -84,28 +139,36 @@ public class Stage3RunServiceImpl extends AbstractLinkedProcessorFlow {
             // 添加数据
             String wayBillTaskId = Prefix.WayBillPrefix + UuidUtils.getUUID();
 
+            Location takeLocationLocation = locationRepository.findByLocation(takeLocation);
+            String teethH = Float.toString(takeLocationLocation.getTeethH());
+
             // destinations
             // 放下插齿，收回插齿
             JSONArray destinations = new JSONArray();
             JSONObject wait = SeerParamUtil.buildDestinations(
-                    task.getTakeLocation(), "Wait", "device:requestAtSend",  wayBillTaskId+ ":wait");
+                    takeLocation, "Wait", "device:requestAtSend",  wayBillTaskId+ ":wait");
             destinations.add(wait);
             JSONObject wait1 = SeerParamUtil.buildDestinations(
-                    task.getTakeLocation(), "Wait", "device:queryAtExecuted", wayBillTaskId+ ":wait");
+                    takeLocation, "Wait", "device:queryAtExecuted", wayBillTaskId+ ":wait");
             destinations.add(wait1);
+            JSONObject forkForward = SeerParamUtil.buildDestinations(
+                    takeLocation, "ForkForward", "fork_dist", "1");
+            destinations.add(forkForward);
             JSONObject forkUnload = SeerParamUtil.buildDestinations(
-                    task.getTakeLocation(), "ForkUnload", "end_height", "1");
+                    takeLocation, "ForkUnload", "end_height", teethH);
             destinations.add(forkUnload);
-            JSONObject forkUnload1 = SeerParamUtil.buildDestinations(
-                    task.getTakeLocation(), "ForkForward", "dist", "1");
-            destinations.add(forkUnload1);
+            JSONObject forkForward1 = SeerParamUtil.buildDestinations(
+                    takeLocation, "ForkForward", "fork_dist", "0");
+            destinations.add(forkForward1);
 
             // 补充参数
-            params.put("deadline", task.getDeadlineTime());
+            params.put("wrappingSequence", taskId);
             params.put("destinations", destinations);
             params.put("dependencies", new ArrayList<>());
             params.put("properties", new ArrayList<>());
-            params.put("intendedVehicle", "");
+            // 先不指定车辆
+            params.put("intendedVehicle", task.getIntendedVehicle());
+            params.put("deadline", task.getDeadlineTime());
 
             wayBillTask = WayBillTask.builder().taskId(taskId).wayBillTaskId(wayBillTaskId).lock(true)
                     .stage(TaskStageEnum.PLUGBOARDTEST_TO_TAKEPOINT.toString()).status(Status.RUNNING.getCode())

@@ -85,7 +85,9 @@ public class Stage3MobileRunServiceImpl extends AbstractLinkedProcessorFlow<Obje
             JSONObject queryVehicleRes = HttpClientUtils.getForJsonResult(
                     AppApiEnum.queryVehicleUrl.getDesc() + vehicleName);
 
-            if (queryVehicleRes.get("currentDestination").equals(deliveryLocationF)) {
+            if ("BEING_PROCESSED".equals(queryTaskRes.get("state")) ||
+                    "FINISHED".equals(queryTaskRes.get("state")) &&
+                    queryVehicleRes.get("currentPosition").equals(deliveryLocationF.replace("LOC-", ""))) {
 
                 // 接口查下当前任务状态，若完成则更新FINISHED
                 wayBillTask.setStatus(Status.FINISHED.getCode());
@@ -118,11 +120,12 @@ public class Stage3MobileRunServiceImpl extends AbstractLinkedProcessorFlow<Obje
             destinations.add(forkUnload);
 
             // 补充参数
+            params.put("wrappingSequence", taskId);
             params.put("destinations", destinations);
             params.put("dependencies", new ArrayList<>());
             params.put("properties", new ArrayList<>());
             // 先不指定车辆
-            params.put("intendedVehicle", "");
+            params.put("intendedVehicle", task.getIntendedVehicle());
             params.put("deadline", task.getDeadlineTime());
 
             wayBillTask = WayBillTask.builder().taskId(taskId).wayBillTaskId(wayBillTaskId).lock(true)

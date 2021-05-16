@@ -8,8 +8,10 @@ import com.dhl.pizer.conf.Prefix;
 import com.dhl.pizer.conf.ProjectToStagesRelation;
 import com.dhl.pizer.conf.Status;
 import com.dhl.pizer.conf.TaskStageEnum;
+import com.dhl.pizer.dao.LocationRepository;
 import com.dhl.pizer.dao.TaskRepository;
 import com.dhl.pizer.dao.WayBillTaskRepository;
+import com.dhl.pizer.entity.Location;
 import com.dhl.pizer.entity.Task;
 import com.dhl.pizer.entity.WayBillTask;
 import com.dhl.pizer.flowcontrol.flowchain.AbstractLinkedProcessorFlow;
@@ -44,14 +46,30 @@ public class Stage2RunServiceImpl extends AbstractLinkedProcessorFlow {
     @Autowired
     private WayBillTaskRepository wayBillTaskRepository;
 
+    @Autowired
+    private LocationRepository locationRepository;
+
     @Override
     public boolean entry(ControlArgs controlArgs) throws BugException {
 
         String taskId = controlArgs.getTaskId();
 
         Task task = taskRepository.findByTaskId(taskId);
+
+        // 取货点：
+        String takeLocation = task.getTakeLocation() ;
+        // 查询对应起始点的辅助点，起始点的前置点：
+        //String takeLocationF = "LOC-AP5";
+        Location location1 = locationRepository.findByLocation(takeLocation);
+        String takeLocationF = location1.getAuxiliarylocation();
+
+
+        // 安全区域提示点
+        String safeLocation = "LOC-AP11";
+
         // 更新task的stage
         task.setStage(TaskStageEnum.PICKUPPOINT_TO_PLUGBOARDTEST.toString());
+        task.setTakeLocation(task.getTakeLocation());
         taskRepository.save(task);
 
         WayBillTask wayBillTask = wayBillTaskRepository.findByTaskIdAndStatusAndStage(
@@ -65,10 +83,21 @@ public class Stage2RunServiceImpl extends AbstractLinkedProcessorFlow {
             JSONObject queryTaskRes = HttpClientUtils.getForJsonResult(
                     AppApiEnum.queryTaskUrl.getDesc() + wayBillTask.getWayBillTaskId());
 
-            JSONObject queryVehicleRes = HttpClientUtils.getForJsonResult(
-                    AppApiEnum.queryVehicleUrl.getDesc() + task.getIntendedVehicle());
+            // 更新task的车辆信息
+            if (queryTaskRes.get("processingVehicle") == null || queryTaskRes.get("processingVehicle").equals("")) {
+                return false;
+            }
 
-            if (queryVehicleRes.get("currentDestination").equals("LOC-AP1001")) {
+            String vehicleName = queryTaskRes.get("processingVehicle").toString();
+            task.setIntendedVehicle(vehicleName);
+            taskRepository.save(task);
+
+            JSONObject queryVehicleRes = HttpClientUtils.getForJsonResult(
+                    AppApiEnum.queryVehicleUrl.getDesc() + vehicleName);
+
+            if ("BEING_PROCESSED".equals(queryTaskRes.get("state"))||
+                    "FINISHED".equals(queryTaskRes.get("state")) &&
+                            queryVehicleRes.get("currentPosition").equals(safeLocation.replace("LOC-", ""))) {
 
                 // 接口查下当前任务状态，若完成则更新FINISHED
                 wayBillTask.setStatus(Status.FINISHED.getCode());
@@ -76,12 +105,13 @@ public class Stage2RunServiceImpl extends AbstractLinkedProcessorFlow {
                 wayBillTaskRepository.save(wayBillTask);
                 return true;
             }
+
         } else {
-            // 判断绿灯
-//            if (!nettyServerHandler.checkGreenLedStatus("NO.2")) {
-//                log.warn("led当前不为绿灯，等待时机！");
-//                return false;
-//            }
+
+            if (nettyServerHandler.checkGreenLedStatus(safeLocation)) {
+                log.warn("led当前为绿灯，有人正在通行，请等待时机！");
+                return false;
+            }
 
             // 提交参数
             JSONObject params = new JSONObject();
@@ -89,31 +119,35 @@ public class Stage2RunServiceImpl extends AbstractLinkedProcessorFlow {
             // 添加数据
             String wayBillTaskId = Prefix.WayBillPrefix + UuidUtils.getUUID();
 
+            String teethH = "0.5";
+
             // destinations
             // 放下插齿，收回插齿
             JSONArray destinations = new JSONArray();
             JSONObject wait = SeerParamUtil.buildDestinations(
-                    "LOC-AP1001", "Wait", "device:requestAtSend",  wayBillTaskId+ ":wait");
+                    safeLocation, "Wait", "device:requestAtSend",  wayBillTaskId+ ":wait");
             destinations.add(wait);
             JSONObject wait1 = SeerParamUtil.buildDestinations(
-                    "LOC-AP1001", "Wait", "device:queryAtExecuted", wayBillTaskId+ ":wait");
+                    safeLocation, "Wait", "device:queryAtExecuted", wayBillTaskId+ ":wait");
             destinations.add(wait1);
-            JSONObject forkUnload = SeerParamUtil.buildDestinations(
-                    "LOC-AP1001", "ForkUnload", "end_height", "0.3");
-            destinations.add(forkUnload);
+//            JSONObject forkUnload = SeerParamUtil.buildDestinations(
+//                    safeLocation, "ForkUnload", "end_height", teethH);
+//            destinations.add(forkUnload);
 
             // 补充参数
+            params.put("wrappingSequence", taskId);
             params.put("destinations", destinations);
             params.put("dependencies", new ArrayList<>());
             params.put("properties", new ArrayList<>());
-            params.put("intendedVehicle", "");
+            // 先不指定车辆
+            params.put("intendedVehicle", task.getIntendedVehicle());
+            params.put("deadline", task.getDeadlineTime());
 
             wayBillTask = WayBillTask.builder().taskId(taskId).wayBillTaskId(wayBillTaskId).lock(true)
                     .stage(TaskStageEnum.PICKUPPOINT_TO_PLUGBOARDTEST.toString()).status(Status.RUNNING.getCode())
                     .param(params.toJSONString()).createTime(new Date()).updateTime(new Date()).build();
             wayBillTaskRepository.insert(wayBillTask);
 
-            // 发送这阶段任务
             HttpClientUtils.doPost(AppApiEnum.sendTaskUrl.getDesc() + wayBillTaskId, params);
 
             // agv任务可放行，将上个阶段放行

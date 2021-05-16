@@ -36,6 +36,10 @@ public class Stage4MobileRunServiceImpl extends AbstractLinkedProcessorFlow<Obje
     @Autowired
     private LocationRepository locationRepository;
 
+    public static void main(String[] args) {
+        System.out.println();
+    }
+
     @Override
     public boolean entry(ControlArgs controlArgs) throws BugException {
 
@@ -81,6 +85,10 @@ public class Stage4MobileRunServiceImpl extends AbstractLinkedProcessorFlow<Obje
                 wayBillTask.setStatus(Status.FINISHED.getCode());
                 wayBillTask.setUpdateTime(new Date());
                 wayBillTaskRepository.save(wayBillTask);
+
+                // 运单序列封口
+                HttpClientUtils.doPost(String.format(AppApiEnum.cancelSequenceTaskUrl.getDesc(), taskId), new JSONObject());
+
                 return true;
             }
 
@@ -103,19 +111,21 @@ public class Stage4MobileRunServiceImpl extends AbstractLinkedProcessorFlow<Obje
             JSONObject forkUnload = SeerParamUtil.buildDestinations(
                     deliveryLocation, "ForkUnload", "end_height", teethH);
             destinations.add(forkUnload);
-            JSONObject forkForward2 = SeerParamUtil.buildDestinations(
+            JSONObject forkForward1 = SeerParamUtil.buildDestinations(
                     deliveryLocation, "ForkForward", "fork_dist", "0");
-            destinations.add(forkForward2);
+            destinations.add(forkForward1);
+//
 //            JSONObject forkUnload1 = SeerParamUtil.buildDestinations(
 //                    deliveryLocation, "ForkForward", "dist", "0");
 //            destinations.add(forkUnload1);
 
             // 补充参数
+            params.put("wrappingSequence", taskId);
             params.put("destinations", destinations);
             params.put("dependencies", new ArrayList<>());
             params.put("properties", new ArrayList<>());
             // 先不指定车辆
-            params.put("intendedVehicle", "");
+            params.put("intendedVehicle", task.getIntendedVehicle());
             params.put("deadline", task.getDeadlineTime());
 
             wayBillTask = WayBillTask.builder().taskId(taskId).wayBillTaskId(wayBillTaskId).lock(true)

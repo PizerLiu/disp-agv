@@ -24,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
+import org.springframework.data.domain.ExampleMatcher;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -44,17 +45,34 @@ public class Stage4RunServiceImpl extends AbstractLinkedProcessorFlow {
     @Autowired
     private LocationRepository locationRepository;
 
-    @Autowired
-    private RegService regService;
-
     @Override
     public boolean entry(ControlArgs controlArgs) throws BugException {
 
         String taskId = controlArgs.getTaskId();
 
         Task task = taskRepository.findByTaskId(taskId);
+
+        // 取货点：
+        String takeLocation = task.getTakeLocation() ;
+        // 查询对应起始点的辅助点，起始点的前置点：
+        //String takeLocationF = "LOC-AP5";
+        Location location1 = locationRepository.findByLocation(takeLocation);
+        String takeLocationF = location1.getAuxiliarylocation();
+
+        // 放货点：
+        String deliveryLocation = task.getDeliveryLocation();
+        // 查询对应放货点的辅助点，放货点的前置点：
+        //String deliveryLocationF = "LOC-AP2";
+        Location location2 = locationRepository.findByLocation(deliveryLocation);
+
+        String deliveryLocationF = "";
+        if (location2 != null) {
+            deliveryLocationF = location2.getAuxiliarylocation();
+        }
+
         // 更新task的stage
         task.setStage(TaskStageEnum.TAKEPOINT_TO_DISCHARGELEADINGPOINT.toString());
+        task.setTakeLocation(task.getTakeLocation());
         taskRepository.save(task);
 
         WayBillTask wayBillTask = wayBillTaskRepository.findByTaskIdAndStatusAndStage(
@@ -68,10 +86,21 @@ public class Stage4RunServiceImpl extends AbstractLinkedProcessorFlow {
             JSONObject queryTaskRes = HttpClientUtils.getForJsonResult(
                     AppApiEnum.queryTaskUrl.getDesc() + wayBillTask.getWayBillTaskId());
 
-            JSONObject queryVehicleRes = HttpClientUtils.getForJsonResult(
-                    AppApiEnum.queryVehicleUrl.getDesc() + task.getIntendedVehicle());
+            // 更新task的车辆信息
+            if (queryTaskRes.get("processingVehicle") == null || queryTaskRes.get("processingVehicle").equals("")) {
+                return false;
+            }
 
-            if (queryVehicleRes.get("currentDestination").equals("LOC-AP1005")) {
+            String vehicleName = queryTaskRes.get("processingVehicle").toString();
+            task.setIntendedVehicle(vehicleName);
+            taskRepository.save(task);
+
+            JSONObject queryVehicleRes = HttpClientUtils.getForJsonResult(
+                    AppApiEnum.queryVehicleUrl.getDesc() + vehicleName);
+
+            if ("BEING_PROCESSED".equals(queryTaskRes.get("state"))||
+                    "FINISHED".equals(queryTaskRes.get("state")) &&
+                            queryVehicleRes.get("currentPosition").equals(deliveryLocationF.replace("LOC-", ""))) {
 
                 // 接口查下当前任务状态，若完成则更新FINISHED
                 wayBillTask.setStatus(Status.FINISHED.getCode());
@@ -79,82 +108,73 @@ public class Stage4RunServiceImpl extends AbstractLinkedProcessorFlow {
                 wayBillTaskRepository.save(wayBillTask);
                 return true;
             }
+
         } else {
 
             Example<Location> locationExample = null;
+            ExampleMatcher matcher = ExampleMatcher.matching()
+                    .withIgnorePaths("teethH");
 
             // 若已经有指定的放货库位
-            String deliveryLocation = task.getDeliveryLocation();
             if (deliveryLocation != null && !deliveryLocation.equals("")) {
+//                log.info("位置1");
                 // 查看该库位是否被锁
                 locationExample = Example.of(Location.builder().type("deliveryLocation")
-                        .lock(false).location(deliveryLocation).build());
+                        .lock(false).location(deliveryLocation).build(), matcher);
             } else {
+//                log.info("位置2");
                 // todo 选择空闲放货库位，同时设置占用库位，库位占用何时释放掉
-                Location location = Location.builder().type("deliveryLocation").lock(false).build();
-                locationExample = Example.of(location);
+                locationExample = Example.of(Location.builder().type("deliveryLocation")
+                        .lock(false).build(), matcher);
             }
-
+//            log.info("位置3 locationExample = " + locationExample);
             List<Location> locations = locationRepository.findAll(locationExample);
             if (locations.size() == 0) {
-                log.warn("放货库位已被占用，请等待！");
+                log.warn("暂无放货库位，正全部占用，请等待! ");
                 return false;
             }
 
             Location location = locations.get(0);
-            String targetLocation = location.getLocation();
-
-            // 设置库位锁定
-            location.setLock(true);
-            location.setUpdateTime(new Date());
-            locationRepository.save(location);
-
-            // 设置task的目标放货库位
-            task.setDeliveryLocation(targetLocation);
-            task.setUpdateTime(new Date());
+            // todo 更新task表的任务情况
+            task.setDeliveryLocation(location.getLocation());
             taskRepository.save(task);
-
+            log.info("保存更新DeliveryLocation！");
+            
+            deliveryLocationF = location.getAuxiliarylocation();
+            log.info("deliveryLocationF = " + deliveryLocationF);
+            
             // 提交参数
             JSONObject params = new JSONObject();
 
-            // destinations
-            // 放下插齿，收回插齿
-            String assistLocation = "";
-            if (targetLocation.equals("LOC-AP1006")) {
-                assistLocation = "LOC-AP1003";
-            }
-            if (targetLocation.equals("LOC-AP1007")) {
-                assistLocation = "LOC-AP1004";
-            }
-            if (targetLocation.equals("LOC-AP1008")) {
-                assistLocation = "LOC-AP1005";
-            }
-
             // 添加数据
             String wayBillTaskId = Prefix.WayBillPrefix + UuidUtils.getUUID();
+
+            Location deliveryLocationFLocation = locationRepository.findByLocation(deliveryLocationF);
+            String teethH = Float.toString(deliveryLocationFLocation.getTeethH());
 
             // destinations
             // 放下插齿，收回插齿
             JSONArray destinations = new JSONArray();
             JSONObject wait = SeerParamUtil.buildDestinations(
-                    assistLocation, "Wait", "device:requestAtSend",  wayBillTaskId+ ":wait");
+                    deliveryLocationF, "Wait", "device:requestAtSend",  wayBillTaskId+ ":wait");
             destinations.add(wait);
             JSONObject wait1 = SeerParamUtil.buildDestinations(
-                    assistLocation, "Wait", "device:queryAtExecuted", wayBillTaskId+ ":wait");
+                    deliveryLocationF, "Wait", "device:queryAtExecuted", wayBillTaskId+ ":wait");
             destinations.add(wait1);
-
             JSONObject forkUnload = SeerParamUtil.buildDestinations(
-                    assistLocation, "ForkUnload", "end_height", "1");
+                    deliveryLocationF, "ForkUnload", "end_height", teethH);
             destinations.add(forkUnload);
 
             // 补充参数
-            params.put("deadline", task.getDeadlineTime());
+            params.put("wrappingSequence", taskId);
             params.put("destinations", destinations);
             params.put("dependencies", new ArrayList<>());
             params.put("properties", new ArrayList<>());
-            params.put("intendedVehicle", "");
+            // 先不指定车辆
+            params.put("intendedVehicle", task.getIntendedVehicle());
+            params.put("deadline", task.getDeadlineTime());
 
-            wayBillTask = WayBillTask.builder().taskId(taskId).wayBillTaskId(wayBillTaskId)
+            wayBillTask = WayBillTask.builder().taskId(taskId).wayBillTaskId(wayBillTaskId).lock(true)
                     .stage(TaskStageEnum.TAKEPOINT_TO_DISCHARGELEADINGPOINT.toString()).status(Status.RUNNING.getCode())
                     .param(params.toJSONString()).createTime(new Date()).updateTime(new Date()).build();
             wayBillTaskRepository.insert(wayBillTask);

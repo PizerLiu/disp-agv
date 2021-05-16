@@ -21,6 +21,7 @@ import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
+import org.springframework.data.domain.ExampleMatcher;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -55,22 +56,20 @@ public class BaseDataController {
     @Autowired
     private NettyServerHandler nettyServerHandler;
 
+    @Autowired
+    private LocationRepository locationRepository;
+
     @GetMapping("/test")
     public ResponceBody test() {
 
-//        WayBillTask wayBillTask = wayBillTaskRepository.findByTaskIdAndStatusAndStage(
-//                "task_b8a16817156c40b5a7a6be26772b5578",
-//                Status.RUNNING.getCode(),
-//                TaskStageEnum.PP_TO_TAKELEADINGPOINT.toString());
+        ExampleMatcher matcher = ExampleMatcher.matching()
+                .withIgnorePaths("teethH");
 
-        System.out.println(nettyServerHandler.checkGreenLedStatus("NO.2"));
+        Example<Location> locationExample = Example.of(Location.builder().type("takeLocation")
+                .lock(false).build(), matcher);
+        List<Location> locations = locationRepository.findAll(locationExample);
 
-//        Set set = setRepository.findAllById("601764207ab6bd57abbe0af0");
-//        if (set == null || !set.isSetpower()) {
-//            return new ResponceBody().error(ErrorCode.Setting_power_false, "test");
-//        }
-
-        return new ResponceBody().success(true);
+        return new ResponceBody().success(locations);
     }
 
     // @ApiOperation("查询运单任务")

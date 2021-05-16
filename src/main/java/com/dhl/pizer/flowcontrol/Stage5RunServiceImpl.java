@@ -48,8 +48,24 @@ public class Stage5RunServiceImpl extends AbstractLinkedProcessorFlow {
         String taskId = controlArgs.getTaskId();
 
         Task task = taskRepository.findByTaskId(taskId);
+
+        // 取货点：
+        String takeLocation = task.getTakeLocation() ;
+        // 查询对应起始点的辅助点，起始点的前置点：
+        //String takeLocationF = "LOC-AP5";
+        Location location1 = locationRepository.findByLocation(takeLocation);
+        String takeLocationF = location1.getAuxiliarylocation();
+
+        // 放货点：
+        String deliveryLocation = task.getDeliveryLocation();
+        // 查询对应放货点的辅助点，放货点的前置点：
+        //String deliveryLocationF = "LOC-AP2";
+        Location location2 = locationRepository.findByLocation(deliveryLocation);
+        String deliveryLocationF = location2.getAuxiliarylocation();
+
         // 更新task的stage
         task.setStage(TaskStageEnum.DISCHARGELEADINGPOINT_TO_DISCHARGEPOINT.toString());
+        task.setTakeLocation(task.getTakeLocation());
         taskRepository.save(task);
 
         WayBillTask wayBillTask = wayBillTaskRepository.findByTaskIdAndStatusAndStage(
@@ -73,32 +89,40 @@ public class Stage5RunServiceImpl extends AbstractLinkedProcessorFlow {
                 wayBillTaskRepository.save(wayBillTask);
                 return true;
             }
+
         } else {
+            // 提交参数
+            JSONObject params = new JSONObject();
 
             // 添加数据
             String wayBillTaskId = Prefix.WayBillPrefix + UuidUtils.getUUID();
 
-            // 提交参数
-            JSONObject params = new JSONObject();
+            Location deliveryLocationLocation = locationRepository.findByLocation(deliveryLocation);
+            String teethH = Float.toString(deliveryLocationLocation.getTeethH());
 
             // destinations
             // 放下插齿，收回插齿
             JSONArray destinations = new JSONArray();
+            JSONObject forkForward = SeerParamUtil.buildDestinations(
+                    deliveryLocation, "ForkForward", "fork_dist", "1");
+            destinations.add(forkForward);
             JSONObject forkUnload = SeerParamUtil.buildDestinations(
-                    task.getDeliveryLocation(), "ForkUnload", "end_height", "0.1");
+                    deliveryLocation, "ForkUnload", "end_height", teethH);
             destinations.add(forkUnload);
-            JSONObject forkUnload1 = SeerParamUtil.buildDestinations(
-                    task.getDeliveryLocation(), "ForkForward", "dist", "0");
-            destinations.add(forkUnload1);
+            JSONObject forkForward1 = SeerParamUtil.buildDestinations(
+                    deliveryLocation, "ForkForward", "fork_dist", "0");
+            destinations.add(forkForward1);
 
             // 补充参数
-            params.put("deadline", task.getDeadlineTime());
+            params.put("wrappingSequence", taskId);
             params.put("destinations", destinations);
             params.put("dependencies", new ArrayList<>());
             params.put("properties", new ArrayList<>());
-            params.put("intendedVehicle", "");
+            // 先不指定车辆
+            params.put("intendedVehicle", task.getIntendedVehicle());
+            params.put("deadline", task.getDeadlineTime());
 
-            wayBillTask = WayBillTask.builder().taskId(taskId).wayBillTaskId(wayBillTaskId)
+            wayBillTask = WayBillTask.builder().taskId(taskId).wayBillTaskId(wayBillTaskId).lock(true)
                     .stage(TaskStageEnum.DISCHARGELEADINGPOINT_TO_DISCHARGEPOINT.toString()).status(Status.RUNNING.getCode())
                     .param(params.toJSONString()).createTime(new Date()).updateTime(new Date()).build();
             wayBillTaskRepository.insert(wayBillTask);
