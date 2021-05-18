@@ -162,11 +162,11 @@ public class NettyServerHandler extends ChannelInboundHandlerAdapter {
 
             SetService setService = SpringContextUtil.getApplicationContext().getBean(SetService.class);
             // 30s内触发的只当作一次
-            Set currentSet = setService.findAllById("601764207ab6bd57abbe0af1");
+            Set currentSet = setService.findAllById("601764207ab6bd57abbe0af0");
 
             // 数据库开关
             if (!currentSet.isSetPhotoelectricity()) {
-                log.warn("请检查数据库配置：601764207ab6bd57abbe0af1， 请将setPhotoelectricity设置为true！");
+                log.warn("请检查数据库配置：601764207ab6bd57abbe0af0， 请将setPhotoelectricity设置为true！");
                 return;
             }
 
