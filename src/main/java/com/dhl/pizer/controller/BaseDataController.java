@@ -62,11 +62,10 @@ public class BaseDataController {
     @GetMapping("/test")
     public ResponceBody test() {
 
-        ExampleMatcher matcher = ExampleMatcher.matching()
-                .withIgnorePaths("teethH");
+        ExampleMatcher matcher = ExampleMatcher.matching().withIgnorePaths("teethH");
 
-        Example<Location> locationExample = Example.of(Location.builder().type("takeLocation")
-                .lock(false).build(), matcher);
+        Example<Location> locationExample = Example.of(Location.builder().type("takeLocation").lock(false).build(),
+                matcher);
         List<Location> locations = locationRepository.findAll(locationExample);
 
         return new ResponceBody().success(locations);
@@ -76,33 +75,40 @@ public class BaseDataController {
     // @GetMapping("/get")
     // public ResponceBody findTask(@RequestParam("id") String id) {
 
-    //     String objectId = "60070fccc3aa5f06a9d7ca31";
+    // String objectId = "60070fccc3aa5f06a9d7ca31";
 
-    //     Optional<Task> taskOp = taskRepository.findById(objectId);
+    // Optional<Task> taskOp = taskRepository.findById(objectId);
 
-    //     if (taskOp.isPresent()) {
-    //         Task task = taskOp.get();
-    //         return new ResponceBody().success(JSONObject.toJSON(task));
-    //     }
+    // if (taskOp.isPresent()) {
+    // Task task = taskOp.get();
+    // return new ResponceBody().success(JSONObject.toJSON(task));
+    // }
 
-    //     return new ResponceBody().error(null, null);
+    // return new ResponceBody().error(null, null);
 
     // }
 
-     @ApiOperation("手持端添加task")
-     @GetMapping("/add")
-     public ResponceBody insertTask(@RequestParam("start_location") String startLocation) {
+    @ApiOperation("手持端添加task")
+    @GetMapping("/add")
+    public ResponceBody insertTask(@RequestParam("start_location") String startLocation) {
 
-         return taskService.createTask("阿斯利康-手持端", "LOC-AP1002", "");
-     }
+        return taskService.createTask("阿斯利康-手持端", "LOC-AP1002", "");
+    }
 
-//    @ApiOperation("添加运单任务")
-//    @PostMapping("/add")
-//    public ResponceBody insertTask(@RequestBody Task task) {
-//
-//        Task res = taskRepository.insert(task);
-//        return new ResponceBody().success(res);
-//    }
+    // @ApiOperation("添加运单任务")
+    // @PostMapping("/add")
+    // public ResponceBody insertTask(@RequestBody Task task) {
+    //
+    // Task res = taskRepository.insert(task);
+    // return new ResponceBody().success(res);
+    // }
+
+    @ApiOperation("获取status=20的运单任务")
+    @GetMapping("/get")
+    public ResponceBody getTask() {
+        List<Task> res = taskRepository.findAllByStatusNot(20);
+        return new ResponceBody().success(res);
+    }
 
     @ApiOperation("修改运单任务")
     @PostMapping("/edit")
@@ -121,6 +127,13 @@ public class BaseDataController {
         return new ResponceBody().success(true);
     }
 
+    @ApiOperation("删除全部运单任务")
+    @DeleteMapping("/deleteALL")
+    public ResponceBody deleteAllTask() {
+        taskRepository.deleteAll();
+        return new ResponceBody().success(true);
+    }
+
     @ApiOperation("查找库位信息")
     @GetMapping("/find")
     public ResponceBody findTask(@RequestParam("taskId") String taskId) {
@@ -131,7 +144,7 @@ public class BaseDataController {
     @ApiOperation("app添加运单任务")
     @PostMapping("/addby")
     public ResponceBody addTask(@RequestBody MobileAddTaskDto mobileAddTaskDto) {
-        return taskService.createTask("阿斯利康-手持端", mobileAddTaskDto.getTakeLocation(), mobileAddTaskDto.getDeliveryLocation());
+        return taskService.createTask("阿斯利康-手持端", mobileAddTaskDto.getTakeLocation(),
+                mobileAddTaskDto.getDeliveryLocation());
     }
 }
-

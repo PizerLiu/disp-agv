@@ -28,6 +28,10 @@ public class WayBillTaskService {
         wayBillTaskRepository.deleteById(id);
     }
 
+    public void deleteAll() {
+        wayBillTaskRepository.deleteAll();
+    }
+
     public List<WayBillTask> find(String taskId) {
         return wayBillTaskRepository.findAllByTaskId(taskId);
     }

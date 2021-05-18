@@ -56,6 +56,13 @@ public class WayBillTaskDataController {
         return new ResponceBody().success(true);
     }
 
+    @ApiOperation("删除全部任务条例")
+    @DeleteMapping("/waybilltask/deleteAll")
+    public ResponceBody deleteAllWayBillTask() {
+        wayBillTaskService.deleteAll();
+        return new ResponceBody().success(true);
+    }
+
     @ApiOperation("查找任务条例")
     @GetMapping("/waybilltask/find")
     public ResponceBody findWayBillTask(@RequestParam("taskId") String taskId) {

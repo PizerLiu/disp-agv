@@ -35,4 +35,7 @@ public class Set implements Serializable{
 
     @ApiModelProperty("更新时间")
     private Date updateTime;
+
+    @ApiModelProperty("IP")
+    private String setIp;
 }
