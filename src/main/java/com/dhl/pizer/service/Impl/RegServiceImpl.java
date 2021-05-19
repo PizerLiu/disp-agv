@@ -16,27 +16,28 @@ public class RegServiceImpl implements RegService {
     public void setRegLed(String regId, boolean on) {
 
         ChannelHandlerContext ctx = nettyServerHandler.getCtx(regId);
-        if (on) {
-            // 开绿灯
-            if (regId.equals("LOC-AP1")) {
-                ctx.write("CLOSE 6");
-                ctx.write("OPEN 5");
+        if (ctx != null) {
+            if (on) {
+                // 开绿灯
+                if (regId.equals("LOC-AP1")) {
+                    ctx.write("CLOSE 6");
+                    ctx.write("OPEN 5");
+                } else {
+                    ctx.write("OPEN 1");
+                }
+
             } else {
-                ctx.write("OPEN 1");
+                // 开红灯
+                if (regId.equals("LOC-AP1")) {
+                    ctx.write("CLOSE 5");
+                    ctx.write("OPEN 6");
+                } else {
+                    ctx.write("CLOSE 1");
+                }
+
             }
 
-        } else {
-            // 开红灯
-            if (regId.equals("LOC-AP1")) {
-                ctx.write("CLOSE 5");
-                ctx.write("OPEN 6");
-            } else {
-                ctx.write("CLOSE 1");
-            }
-
+            ctx.flush();
         }
-
-        ctx.flush();
     }
-
 }

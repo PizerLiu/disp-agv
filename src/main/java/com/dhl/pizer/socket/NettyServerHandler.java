@@ -149,7 +149,6 @@ public class NettyServerHandler extends ChannelInboundHandlerAdapter {
             Set set1 = new Set();
             set1.setId("601764207ab6bd57abbe0af1");
             set1.setHTag(true);
-            set1.setSetPhotoelectricity(true);
             set1.setUpdateTime(new Date());
             setService.addOrUpdate(set1);
         }
@@ -158,36 +157,40 @@ public class NettyServerHandler extends ChannelInboundHandlerAdapter {
         // todo LOC-AP1 才是16位的，其他为8位；
 //        log.info("tag = " + tag);
 //        log.info("hTag = " + hTag);
-        if (message.getRegId().equals("LOC-AP1") && message.getIoState().substring(11, 12).equals("0") && tag && hTag) {
+        if (message.getRegId().equals("LOC-AP1") && message.getIoState().substring(11, 12).equals("0") && hTag) {
 
             SetService setService = SpringContextUtil.getApplicationContext().getBean(SetService.class);
-            // 30s内触发的只当作一次
-            Set currentSet = setService.findAllById("601764207ab6bd57abbe0af0");
 
             // 数据库开关
-            if (!currentSet.isSetPhotoelectricity()) {
+            Set currentf0Set = setService.findAllById("601764207ab6bd57abbe0af0");
+            if (!currentf0Set.isSetPhotoelectricity()) {
                 log.warn("请检查数据库配置：601764207ab6bd57abbe0af0， 请将setPhotoelectricity设置为true！");
                 return;
             }
 
+            // 30s内触发的只当作一次
+            Set currentSet = setService.findAllById("601764207ab6bd57abbe0af1");
             if ( new Date().getTime() - currentSet.getUpdateTime().getTime() < 30 * 1000 ) {
                 log.warn("光电30s内无法同时触发！");
                 return;
             }
 
             log.info("成功触发任务！");
-            tag = false;
 
-            Set set2 = new Set();
-            set2.setId("601764207ab6bd57abbe0af1");
-            set2.setHTag(false);
-            set2.setUpdateTime(new Date());
-            setService.addOrUpdate(set2);
+            currentSet.setHTag(false);
+            setService.addOrUpdate(currentSet);
 
             taskService.createTask("阿斯利康-传感器触发", "LOC-AP1", "");
         } else if (message.getRegId().equals("LOC-AP1") && message.getIoState().substring(11, 12).equals("1") && !tag && hTag) {
             log.info("打开触发限制");
-            tag = true;
+
+            SetService setService = SpringContextUtil.getApplicationContext().getBean(SetService.class);
+
+            Set set2 = new Set();
+            set2.setId("601764207ab6bd57abbe0af1");
+            set2.setHTag(true);
+            set2.setUpdateTime(new Date());
+            setService.addOrUpdate(set2);
         } else {
             // 只有8位的数据
             // 保存其他灯的红绿情况

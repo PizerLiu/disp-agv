@@ -113,6 +113,10 @@ public class Stage5RunServiceImpl extends AbstractLinkedProcessorFlow {
                     deliveryLocation, "ForkForward", "fork_dist", "0");
             destinations.add(forkForward1);
 
+            JSONObject forkUnload1 = SeerParamUtil.buildDestinations(
+                    deliveryLocation, "ForkUnload", "end_height", "0.4");
+            destinations.add(forkUnload1);
+
             // 补充参数
             params.put("wrappingSequence", taskId);
             params.put("destinations", destinations);
