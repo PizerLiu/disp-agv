@@ -80,13 +80,6 @@ public class WebDataController {
         return new ResponceBody().success(true);
     }
 
-    @ApiOperation("删除全部信息")
-    @DeleteMapping("/location/deleteAll")
-    public ResponceBody deleteAllLocation() {
-        locationRepository.deleteAll();
-        return new ResponceBody().success(true);
-    }
-
     @ApiOperation("查找库位信息")
     @GetMapping("/location/find")
     public ResponceBody findLocation(@RequestParam("location") String location) {

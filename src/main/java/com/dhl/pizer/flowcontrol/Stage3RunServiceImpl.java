@@ -162,7 +162,7 @@ public class Stage3RunServiceImpl extends AbstractLinkedProcessorFlow {
             destinations.add(forkForward1);
             // 从取货点到取货辅助点
             JSONObject forkUnload1 = SeerParamUtil.buildDestinations(
-                    takeLocationF, "ForkUnload", "end_height", "0.4");
+                    takeLocation, "ForkUnload", "end_height", "0.4");
             destinations.add(forkUnload1);
 
             // 补充参数
