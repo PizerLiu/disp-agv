@@ -87,6 +87,10 @@ public class Stage5RunServiceImpl extends AbstractLinkedProcessorFlow {
                 wayBillTask.setStatus(Status.FINISHED.getCode());
                 wayBillTask.setUpdateTime(new Date());
                 wayBillTaskRepository.save(wayBillTask);
+
+                // 运单序列封口
+                HttpClientUtils.doPost(String.format(AppApiEnum.cancelSequenceTaskUrl.getDesc(), taskId), new JSONObject());
+
                 return true;
             }
 
@@ -114,7 +118,7 @@ public class Stage5RunServiceImpl extends AbstractLinkedProcessorFlow {
             destinations.add(forkForward1);
 
             JSONObject forkUnload1 = SeerParamUtil.buildDestinations(
-                    deliveryLocation, "ForkUnload", "end_height", "0.4");
+                    deliveryLocationF, "ForkUnload", "end_height", "0.4");
             destinations.add(forkUnload1);
 
             // 补充参数

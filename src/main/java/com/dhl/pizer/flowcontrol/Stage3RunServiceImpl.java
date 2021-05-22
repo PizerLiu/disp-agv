@@ -113,6 +113,7 @@ public class Stage3RunServiceImpl extends AbstractLinkedProcessorFlow {
                 Set set = new Set();
                 set.setId("601764207ab6bd57abbe0af1");
                 set.setHTag(true);
+                set.setUpdateTime(new Date());
                 setService.addOrUpdate(set);
 
                 // 接口查下当前任务状态，若完成则更新FINISHED
@@ -162,7 +163,7 @@ public class Stage3RunServiceImpl extends AbstractLinkedProcessorFlow {
             destinations.add(forkForward1);
             // 从取货点到取货辅助点
             JSONObject forkUnload1 = SeerParamUtil.buildDestinations(
-                    takeLocation, "ForkUnload", "end_height", "0.4");
+                    takeLocationF, "ForkUnload", "end_height", "0.4");
             destinations.add(forkUnload1);
 
             // 补充参数

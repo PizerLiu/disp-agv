@@ -2,28 +2,21 @@ package com.dhl.pizer.socket;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.dhl.pizer.conf.ErrorCode;
-import com.dhl.pizer.dao.SetRepository;
 import com.dhl.pizer.entity.Set;
 import com.dhl.pizer.service.SetService;
 import com.dhl.pizer.service.TaskService;
 import com.dhl.pizer.util.SpringContextUtil;
 import com.dhl.pizer.vo.Message;
-import com.dhl.pizer.vo.ResponceBody;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import java.net.InetSocketAddress;
 import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 @Component
 @Slf4j
@@ -182,15 +175,15 @@ public class NettyServerHandler extends ChannelInboundHandlerAdapter {
 
             taskService.createTask("阿斯利康-传感器触发", "LOC-AP1", "");
         } else if (message.getRegId().equals("LOC-AP1") && message.getIoState().substring(11, 12).equals("1") && !tag && hTag) {
-            log.info("打开触发限制");
-
-            SetService setService = SpringContextUtil.getApplicationContext().getBean(SetService.class);
-
-            Set set2 = new Set();
-            set2.setId("601764207ab6bd57abbe0af1");
-            set2.setHTag(true);
-            set2.setUpdateTime(new Date());
-            setService.addOrUpdate(set2);
+//            log.info("打开触发限制");
+//
+//            SetService setService = SpringContextUtil.getApplicationContext().getBean(SetService.class);
+//
+//            Set set2 = new Set();
+//            set2.setId("601764207ab6bd57abbe0af1");
+//            set2.setHTag(true);
+//            set2.setUpdateTime(new Date());
+//            setService.addOrUpdate(set2);
         } else {
             // 只有8位的数据
             // 保存其他灯的红绿情况
