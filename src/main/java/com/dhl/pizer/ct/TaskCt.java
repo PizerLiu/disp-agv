@@ -63,5 +63,9 @@ public class TaskCt {
         nettyClient.sendMsg("5A0100010000000003F5000000000000");
     }
 
+    @Scheduled(cron = "*/3 * * * * ?")
+    public void scaleBattery() {
+        nettyClient.sendMsg("5A010001000000000404000000000000");
+    }
 
 }

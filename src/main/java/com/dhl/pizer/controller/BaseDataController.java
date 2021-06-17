@@ -130,7 +130,10 @@ public class BaseDataController {
     @ApiOperation("删除全部运单任务")
     @DeleteMapping("/deleteALL")
     public ResponceBody deleteAllTask() {
-        taskRepository.deleteAll();
+//        taskRepository.deleteAll();
+        Task task = new Task();
+        task.setStatus(10);
+        taskRepository.delete(task);
         return new ResponceBody().success(true);
     }
 

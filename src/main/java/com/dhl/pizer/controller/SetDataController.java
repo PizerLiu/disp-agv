@@ -1,5 +1,6 @@
 package com.dhl.pizer.controller;
 
+import java.util.Date;
 import java.util.List;
 
 import com.dhl.pizer.entity.Set;
@@ -27,6 +28,13 @@ public class SetDataController {
     @ApiOperation("更改设置")
     @PostMapping("/save")
     public ResponceBody updateSet(@RequestBody Set set) {
+        // 充值hTag
+        Set set2 = new Set();
+        set2.setId("601764207ab6bd57abbe0af1");
+        set2.setHTag(true);
+        set2.setUpdateTime(new Date());
+        setService.addOrUpdate(set2);
+
         Set res = setService.addOrUpdate(set);
         return new ResponceBody().success(res);
     }

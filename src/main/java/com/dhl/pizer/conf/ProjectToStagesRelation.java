@@ -11,7 +11,7 @@ public class ProjectToStagesRelation {
         put( "阿斯利康-传感器触发" , new ArrayList<String>() {{
             add( "PP_TO_TAKELEADINGPOINT" );
             add( "PICKUPPOINT_TO_PLUGBOARDTEST" );
-            add( "PLUGBOARDTEST_TO_TAKEPOINT" );
+//            add( "PLUGBOARDTEST_TO_TAKEPOINT" );
             add( "TAKEPOINT_TO_DISCHARGELEADINGPOINT" );
             add( "DISCHARGELEADINGPOINT_TO_DISCHARGEPOINT" );
         }});

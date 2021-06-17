@@ -2,6 +2,7 @@ package com.dhl.pizer.controller;
 
 import java.util.List;
 
+import com.dhl.pizer.entity.Task;
 import com.dhl.pizer.entity.WayBillTask;
 import com.dhl.pizer.service.WayBillTaskService;
 import com.dhl.pizer.vo.ResponceBody;
@@ -59,7 +60,10 @@ public class WayBillTaskDataController {
     @ApiOperation("删除全部任务条例")
     @DeleteMapping("/waybilltask/deleteAll")
     public ResponceBody deleteAllWayBillTask() {
-        wayBillTaskService.deleteAll();
+//        wayBillTaskService.deleteAll();
+        WayBillTask wayBillTask = new WayBillTask();
+        wayBillTask.setStatus(10);
+        wayBillTaskService.delete(wayBillTask);
         return new ResponceBody().success(true);
     }
 

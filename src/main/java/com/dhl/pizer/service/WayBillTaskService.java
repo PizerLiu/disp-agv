@@ -28,6 +28,10 @@ public class WayBillTaskService {
         wayBillTaskRepository.deleteById(id);
     }
 
+    public void delete(WayBillTask wayBillTask) {
+        wayBillTaskRepository.delete(wayBillTask);
+    }
+
     public void deleteAll() {
         wayBillTaskRepository.deleteAll();
     }
