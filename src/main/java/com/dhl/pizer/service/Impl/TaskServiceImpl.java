@@ -46,7 +46,7 @@ public class TaskServiceImpl implements TaskService {
     private LocationRepository locationRepository;
 
     @Override
-    public ResponceBody createTask(String projectName, String startLocation, String endLocation) {
+    public ResponceBody createTask(String projectName, String startLocation, String endLocation, String processingVehicle) {
 
         String taskId = Prefix.TaskPrefix + UuidUtils.getUUID();
         Set set = setRepository.findAllById("601764207ab6bd57abbe0af0");
@@ -70,8 +70,8 @@ public class TaskServiceImpl implements TaskService {
         // 创建task任务
         Task task = Task.builder().taskId(taskId).stage(
                 ProjectToStagesRelation.projectToStagesMap.get(projectName).get(0)).deadlineTime(deadlineTime)
-                .status(Status.RUNNING.getCode()).project(projectName).takeLocation(startLocation).deliveryLocation(endLocation).createTime(new Date())
-                .updateTime(new Date()).build();
+                .status(Status.RUNNING.getCode()).project(projectName).takeLocation(startLocation).deliveryLocation(endLocation)
+                .intendedVehicle(processingVehicle).createTime(new Date()).updateTime(new Date()).build();
         taskRepository.insert(task);
 
         // 执行后续流任务
@@ -105,7 +105,6 @@ public class TaskServiceImpl implements TaskService {
                 .withIgnorePaths("teethH");
         locationExample = Example.of(Location.builder().type("deliveryLocation")
                 .location(deliveryLocation).build(), matcher);
-
 
         List<Location> locations = locationRepository.findAll(locationExample);
         if (locations.size() == 0) {

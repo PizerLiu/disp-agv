@@ -173,7 +173,7 @@ public class NettyServerHandler extends ChannelInboundHandlerAdapter {
             currentSet.setHTag(false);
             setService.addOrUpdate(currentSet);
 
-            taskService.createTask("阿斯利康-传感器触发", "LOC-AP1", "");
+            taskService.createTask("阿斯利康-传感器触发", "LOC-AP1", "", "");
         } else if (message.getRegId().equals("LOC-AP1") && message.getIoState().substring(11, 12).equals("1") && !tag && hTag) {
 //            log.info("打开触发限制");
 //

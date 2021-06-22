@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.dhl.pizer.entity.Set;
 import com.dhl.pizer.service.SetService;
+import com.dhl.pizer.service.TaskService;
 import com.dhl.pizer.vo.ResponceBody;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,8 +23,12 @@ import io.swagger.annotations.ApiOperation;
 @RestController
 @RequestMapping("/config")
 public class SetDataController {
+
     @Autowired
     private SetService setService;
+
+    @Autowired
+    private TaskService taskService;
 
     @ApiOperation("更改设置")
     @PostMapping("/save")
@@ -34,6 +39,13 @@ public class SetDataController {
         set2.setHTag(true);
         set2.setUpdateTime(new Date());
         setService.addOrUpdate(set2);
+
+        if (!set.isSetPhotoelectricity()) {
+            // 发送两车到达停靠点的任务
+            taskService.createTask("阿斯利康-回停车点", "", "LOC-AP26", "AMB-01");
+
+            taskService.createTask("阿斯利康-回停车点", "", "LOC-AP28", "AMB-02");
+        }
 
         Set res = setService.addOrUpdate(set);
         return new ResponceBody().success(res);

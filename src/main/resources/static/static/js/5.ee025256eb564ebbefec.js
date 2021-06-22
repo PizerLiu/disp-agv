@@ -1,2 +1,0 @@
-webpackJsonp([5],{FSvT:function(e,t){},lO7g:function(e,t,n){"use strict";Object.defineProperty(t,"__esModule",{value:!0});var i={render:function(){var e=this.$createElement,t=this._self._c||e;return t("div",{staticStyle:{height:"100%"}},[t("div",{staticStyle:{height:"100%"}},[t("router-view")],1)])},staticRenderFns:[]};var r=n("VU/8")({name:"Home"},i,!1,function(e){n("FSvT")},null,null);t.default=r.exports}});
-//# sourceMappingURL=5.ee025256eb564ebbefec.js.map

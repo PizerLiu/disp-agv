@@ -92,7 +92,7 @@ public class BaseDataController {
     @GetMapping("/add")
     public ResponceBody insertTask(@RequestParam("start_location") String startLocation) {
 
-        return taskService.createTask("阿斯利康-手持端", "LOC-AP1002", "");
+        return taskService.createTask("阿斯利康-手持端", "LOC-AP1002", "", "");
     }
 
     // @ApiOperation("添加运单任务")
@@ -148,6 +148,6 @@ public class BaseDataController {
     @PostMapping("/addby")
     public ResponceBody addTask(@RequestBody MobileAddTaskDto mobileAddTaskDto) {
         return taskService.createTask("阿斯利康-手持端", mobileAddTaskDto.getTakeLocation(),
-                mobileAddTaskDto.getDeliveryLocation());
+                mobileAddTaskDto.getDeliveryLocation(), "");
     }
 }

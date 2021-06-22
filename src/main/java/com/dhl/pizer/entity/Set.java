@@ -30,7 +30,7 @@ public class Set implements Serializable{
     @ApiModelProperty("货物可取tag")
     private boolean hTag;
 
-    @ApiModelProperty("是否连接")
+    @ApiModelProperty("是否开启di触发任务能力")
     private boolean setPhotoelectricity;
 
     @ApiModelProperty("更新时间")

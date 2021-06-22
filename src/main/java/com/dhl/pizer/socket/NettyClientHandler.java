@@ -48,12 +48,29 @@ public class NettyClientHandler extends ChannelInboundHandlerAdapter {
         log.info("客户端Active .....");
     }
 
+    public static void main(String[] args) {
+        String ss = "123123{asdasdsad\"DO\":";
+        System.out.println(ss.substring(0, ss.indexOf("\"DO\":")));
+    }
+
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-//        String msg1 = msg.toString().substring(0, msg.toString().indexOf("{"));
+
+        if (!msg.toString().contains("DI")) {
+            if (!msg.toString().contains("battery_temp")) {
+                return;
+            }
+        }
+
+//        log.info("client message1: {}", msg);
         String msg2 = msg.toString().substring(msg.toString().indexOf("{"));
+
+        if (msg2.contains(",\"DO\"")) {
+            msg2 = msg2.substring(0, msg2.indexOf(",\"DO\"")) + "}";
+        }
+
+//        log.info("client message2: {}", msg2);
         messageJson = JSONObject.parseObject(msg2);
-//        log.info("客户端收到消息:{}", msg2);
 
         regService = SpringContextUtil.getApplicationContext().getBean(RegService.class);
         noticeWebSocket = SpringContextUtil.getApplicationContext().getBean(NoticeWebSocket.class);
